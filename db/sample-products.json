@@ -1,0 +1,72 @@
+[
+  {
+    "name": "iPhone 14 Pro Max",
+    "quantity": 25,
+    "price": 129999,
+    "costPrice": 120000,
+    "hsnCode": "85171200"
+  },
+  {
+    "name": "Samsung Galaxy S23 Ultra",
+    "quantity": 18,
+    "price": 124999,
+    "costPrice": 115000,
+    "hsnCode": "85171200"
+  },
+  {
+    "name": "MacBook Pro 14 M3",
+    "quantity": 12,
+    "price": 199990,
+    "costPrice": 185000,
+    "hsnCode": "84713010"
+  },
+  {
+    "name": "Dell XPS 15",
+    "quantity": 15,
+    "price": 149999,
+    "costPrice": 140000,
+    "hsnCode": "84713010"
+  },
+  {
+    "name": "Sony WH-1000XM5",
+    "quantity": 30,
+    "price": 29990,
+    "costPrice": 25000,
+    "hsnCode": "85183000"
+  },
+  {
+    "name": "Apple Watch Series 9",
+    "quantity": 22,
+    "price": 45900,
+    "costPrice": 42000,
+    "hsnCode": "91021900"
+  },
+  {
+    "name": "iPad Air M2",
+    "quantity": 20,
+    "price": 59900,
+    "costPrice": 55000,
+    "hsnCode": "84713010"
+  },
+  {
+    "name": "Samsung 65 QLED TV",
+    "quantity": 8,
+    "price": 89999,
+    "costPrice": 82000,
+    "hsnCode": "85287100"
+  },
+  {
+    "name": "Canon EOS R6 Mark II",
+    "quantity": 5,
+    "price": 239990,
+    "costPrice": 225000,
+    "hsnCode": "85258020"
+  },
+  {
+    "name": "Bose SoundLink Revolve+",
+    "quantity": 35,
+    "price": 24900,
+    "costPrice": 22000,
+    "hsnCode": "85182200"
+  }
+]
