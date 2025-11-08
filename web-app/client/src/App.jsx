@@ -2873,7 +2873,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0s'}}>
                 <div className="stat-icon"></div>
                 <div className="stat-info">
-                  <h3>₹{stats.totalRevenue || 0}</h3>
+                  <h3>₹{Math.round(stats.totalRevenue || 0)}</h3>
                   <p>Total Revenue</p>
                 </div>
               </div>
@@ -2898,7 +2898,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0.3s'}}>
                 <div className="stat-icon">📈</div>
                 <div className="stat-info">
-                  <h3>₹{stats.todaySales || 0}</h3>
+                  <h3>₹{Math.round(stats.todaySales || 0)}</h3>
                   <p>Today's Sales</p>
                 </div>
               </div>
@@ -2906,7 +2906,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0.4s'}}>
                 <div className="stat-icon">💰</div>
                 <div className="stat-info">
-                  <h3>₹{stats.todayProfit || 0}</h3>
+                  <h3>₹{Math.round(stats.todayProfit || 0)}</h3>
                   <p>Today's Profit</p>
                 </div>
               </div>
