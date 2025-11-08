@@ -1,5 +1,15 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install"
+  "buildCommand": "cd web-app/client && npm install && npm run build",
+  "outputDirectory": "web-app/client/dist",
+  "installCommand": "cd web-app/client && npm install",
+  "framework": "vite",
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
