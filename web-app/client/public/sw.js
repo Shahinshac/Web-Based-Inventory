@@ -1,241 +1,115 @@
-const CACHE_NAME = 'inventory-pwa-v1';// Service Worker for 26:07 Electronics Inventory App
+// Service Worker for 26:07 Electronics Inventory App
+const CACHE_NAME = '2607-inventory-v2.0.0';
+const OFFLINE_URL = '/offline.html';
 
-const OFFLINE_URL = '/offline.html';const CACHE_NAME = '2607-inventory-v1.0.0';
+// Static assets to cache
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/offline.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
+];
 
-const urlsToCache = [
-
-// Assets to cache on install  '/',
-
-const STATIC_ASSETS = [  '/index.html',
-
-  '/',  '/src/main.jsx',
-
-  '/offline.html',  '/src/App.jsx',
-
-  '/manifest.json',  '/src/styles.css',
-
-  '/icon-192.png',  '/manifest.json'
-
-  '/icon-512.png',];
-
-  // Will be populated by Vite build process
-
-];// Install event - cache resources
-
+// Install event - cache static assets
 self.addEventListener('install', (event) => {
-
-// API endpoints to cache with network-first strategy  console.log('[Service Worker] Installing...');
-
-const API_CACHE_PATTERNS = [  event.waitUntil(
-
-  /^\/api\/products$/,    caches.open(CACHE_NAME)
-
-  /^\/api\/customers$/,      .then((cache) => {
-
-  /^\/api\/bills$/,        console.log('[Service Worker] Caching app shell');
-
-  /^\/api\/auth\/me$/        return cache.addAll(urlsToCache);
-
-];      })
-
-      .then(() => self.skipWaiting())
-
-// Install event - cache static assets  );
-
-self.addEventListener('install', (event) => {});
-
   console.log('🔧 Service Worker installing...');
-
-  // Activate event - clean up old caches
-
-  event.waitUntil(self.addEventListener('activate', (event) => {
-
-    caches.open(CACHE_NAME)  console.log('[Service Worker] Activating...');
-
-      .then((cache) => {  event.waitUntil(
-
-        console.log('📦 Caching static assets');    caches.keys().then((cacheNames) => {
-
-        return cache.addAll(STATIC_ASSETS);      return Promise.all(
-
-      })        cacheNames.map((cacheName) => {
-
-      .then(() => {          if (cacheName !== CACHE_NAME) {
-
-        console.log('✅ Service Worker installed');            console.log('[Service Worker] Deleting old cache:', cacheName);
-
-        return self.skipWaiting();            return caches.delete(cacheName);
-
-      })          }
-
-      .catch((error) => {        })
-
-        console.error('❌ Failed to cache static assets:', error);      );
-
-      })    }).then(() => self.clients.claim())
-
-  );  );
-
-});});
-
-
-
-// Activate event - clean up old caches// Fetch event - serve from cache, fallback to network
-
-self.addEventListener('activate', (event) => {self.addEventListener('fetch', (event) => {
-
-  console.log('🚀 Service Worker activating...');  // Skip cross-origin requests
-
-    if (!event.request.url.startsWith(self.location.origin)) {
-
-  event.waitUntil(    return;
-
-    caches.keys()  }
-
-      .then((cacheNames) => {
-
-        return Promise.all(  event.respondWith(
-
-          cacheNames.map((cacheName) => {    caches.match(event.request)
-
-            if (cacheName !== CACHE_NAME) {      .then((response) => {
-
-              console.log('🗑️ Deleting old cache:', cacheName);        // Cache hit - return response
-
-              return caches.delete(cacheName);        if (response) {
-
-            }          return response;
-
-          })        }
-
-        );
-
-      })        // Clone the request
-
-      .then(() => {        const fetchRequest = event.request.clone();
-
-        console.log('✅ Service Worker activated');
-
-        return self.clients.claim();        return fetch(fetchRequest).then((response) => {
-
-      })          // Check if valid response
-
-  );          if (!response || response.status !== 200 || response.type !== 'basic') {
-
-});            return response;
-
-          }
-
-// Fetch event - implement caching strategies
-
-self.addEventListener('fetch', (event) => {          // Clone the response
-
-  const { request } = event;          const responseToCache = response.clone();
-
-  const url = new URL(request.url);
-
-          caches.open(CACHE_NAME)
-
-  // Skip non-HTTP requests            .then((cache) => {
-
-  if (!request.url.startsWith('http')) {              cache.put(event.request, responseToCache);
-
-    return;            });
-
-  }
-
-          return response;
-
-  // Handle API requests        }).catch(() => {
-
-  if (url.pathname.startsWith('/api/')) {          // Network failed, try to return offline page if available
-
-    event.respondWith(handleApiRequest(request));          return caches.match('/offline.html');
-
-    return;        });
-
-  }      })
-
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('📦 Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .then(() => {
+        console.log('✅ Service Worker installed');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('❌ Failed to cache static assets:', error);
+      })
   );
-
-  // Handle navigation requests (pages)});
-
-  if (request.mode === 'navigate') {
-
-    event.respondWith(handleNavigationRequest(request));// Background sync for offline actions
-
-    return;self.addEventListener('sync', (event) => {
-
-  }  if (event.tag === 'sync-transactions') {
-
-    event.waitUntil(syncTransactions());
-
-  // Handle static assets  }
-
-  event.respondWith(handleStaticAssetRequest(request));});
-
 });
 
-async function syncTransactions() {
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('🚀 Service Worker activating...');
+  
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('🗑️ Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        console.log('✅ Service Worker activated');
+        return self.clients.claim();
+      })
+  );
+});
 
-// API request handler - Network first, then cache  // Get pending transactions from IndexedDB and sync
+// Fetch event - implement caching strategies
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-async function handleApiRequest(request) {  console.log('[Service Worker] Syncing pending transactions...');
-
-  const cache = await caches.open(CACHE_NAME);  // Implementation would go here
-
+  // Skip non-HTTP requests
+  if (!request.url.startsWith('http')) {
+    return;
   }
 
+  // Handle API requests
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(handleApiRequest(request));
+    return;
+  }
+
+  // Handle navigation requests (pages)
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigationRequest(request));
+    return;
+  }
+
+  // Handle static assets
+  event.respondWith(handleStaticAssetRequest(request));
+});
+
+// API request handler - Network first, then cache
+async function handleApiRequest(request) {
+  const cache = await caches.open(CACHE_NAME);
+  
   try {
-
-    // Try network first// Push notifications
-
-    const networkResponse = await fetch(request);self.addEventListener('push', (event) => {
-
-      const options = {
-
-    // Cache successful GET requests    body: event.data ? event.data.text() : 'New notification',
-
-    if (request.method === 'GET' && networkResponse.ok) {    icon: '/icon-192.png',
-
-      const responseClone = networkResponse.clone();    badge: '/icon-192.png',
-
-      await cache.put(request, responseClone);    vibrate: [200, 100, 200],
-
-      console.log('📡 Cached API response:', request.url);    tag: 'inventory-notification',
-
-    }    requireInteraction: false
-
-      };
-
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    // Cache successful GET requests
+    if (request.method === 'GET' && networkResponse.ok) {
+      const responseClone = networkResponse.clone();
+      await cache.put(request, responseClone);
+      console.log('📡 Cached API response:', request.url);
+    }
+    
     return networkResponse;
-
-  } catch (error) {  event.waitUntil(
-
-    console.log('🔌 Network failed, trying cache:', request.url);    self.registration.showNotification('26:07 Inventory', options)
-
-      );
-
-    // Try cache if network fails});
-
+  } catch (error) {
+    console.log('🔌 Network failed, trying cache:', request.url);
+    
+    // Try cache if network fails
     const cachedResponse = await cache.match(request);
-
-    if (cachedResponse) {// Notification click event
-
-      console.log('📦 Serving from cache:', request.url);self.addEventListener('notificationclick', (event) => {
-
-      return cachedResponse;  event.notification.close();
-
-    }  
-
-      event.waitUntil(
-
-    // Return offline response for API failures    clients.openWindow('/')
-
-    return new Response(  );
-
-      JSON.stringify({ });
-
+    if (cachedResponse) {
+      console.log('📦 Serving from cache:', request.url);
+      return cachedResponse;
+    }
+    
+    // Return offline response for API failures
+    return new Response(
+      JSON.stringify({ 
         error: 'Offline', 
         message: 'This feature requires an internet connection',
         offline: true 
@@ -311,42 +185,12 @@ self.addEventListener('sync', (event) => {
 // Sync offline transactions when back online
 async function syncOfflineTransactions() {
   try {
-    // Get offline transactions from IndexedDB
-    const transactions = await getOfflineTransactions();
-    
-    for (const transaction of transactions) {
-      try {
-        const response = await fetch('/api/bills', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${transaction.token}`
-          },
-          body: JSON.stringify(transaction.data)
-        });
-        
-        if (response.ok) {
-          await removeOfflineTransaction(transaction.id);
-          console.log('✅ Synced offline transaction:', transaction.id);
-        }
-      } catch (error) {
-        console.error('❌ Failed to sync transaction:', transaction.id, error);
-      }
-    }
+    console.log('🔄 Syncing offline transactions...');
+    // Implementation for syncing offline data would go here
+    // This is a placeholder for future offline functionality
   } catch (error) {
     console.error('❌ Background sync failed:', error);
   }
-}
-
-// IndexedDB helpers (placeholder - will be implemented next)
-async function getOfflineTransactions() {
-  // Will implement with IndexedDB
-  return [];
-}
-
-async function removeOfflineTransaction(id) {
-  // Will implement with IndexedDB
-  console.log('Removing offline transaction:', id);
 }
 
 // Push notification handler
@@ -375,6 +219,19 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
       self.registration.showNotification(data.title, options)
     );
+  } else {
+    const options = {
+      body: 'New notification from 26:07 Electronics',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [200, 100, 200],
+      tag: 'inventory-notification',
+      requireInteraction: false
+    };
+
+    event.waitUntil(
+      self.registration.showNotification('26:07 Inventory', options)
+    );
   }
 });
 
@@ -386,7 +243,11 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
       clients.openWindow('/')
     );
+  } else {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
   }
 });
 
-console.log('🔧 Service Worker loaded');
+console.log('🔧 Service Worker loaded successfully');
