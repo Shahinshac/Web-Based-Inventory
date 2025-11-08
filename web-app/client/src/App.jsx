@@ -134,6 +134,29 @@ export default function App(){
     return isAuthenticated;
   };
 
+  // Global error handler to prevent app crashes
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('Global error caught:', event.error);
+      showNotification('❌ An unexpected error occurred. Please refresh the page if problems persist.', 'error');
+      event.preventDefault();
+    };
+
+    const handleRejection = (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showNotification('❌ A background operation failed. The app should continue working normally.', 'warning');
+      event.preventDefault();
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
+
   // Check authentication on mount (permanent session until logout)
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser')
@@ -1295,15 +1318,24 @@ export default function App(){
       showNotification('Error: Invalid product', 'error');
       return;
     }
-    console.log('Adding to cart:', p.name, 'ID:', p.id);
+    
+    // Ensure product has valid ID for database operations
+    const productId = p._id || p.id;
+    if (!productId) {
+      console.error('Product missing ID:', p);
+      showNotification('Error: Product missing ID', 'error');
+      return;
+    }
+    
+    console.log('Adding to cart:', p.name, 'ID:', productId);
     setCart(c=>{
-      const existing = c.find(x=>x.productId===p.id)
+      const existing = c.find(x=>x.productId===productId)
       if (existing) {
         console.log('Increasing quantity for:', p.name);
-        return c.map(x=> x.productId===p.id ? {...x, quantity: x.quantity+1} : x)
+        return c.map(x=> x.productId===productId ? {...x, quantity: x.quantity+1} : x)
       }
       console.log('Adding new item to cart:', p.name);
-      return [...c, {productId: p.id, name: p.name, price: p.price, quantity:1}]
+      return [...c, {productId: productId, name: p.name, price: p.price, quantity:1}]
     })
   }
 
@@ -1321,6 +1353,20 @@ export default function App(){
 
   async function checkout(){
     try {
+      // Validate cart is not empty
+      if (!cart || cart.length === 0) {
+        showNotification('❌ Cart is empty. Add products before checkout.', 'error');
+        return;
+      }
+
+      // Validate all cart items have required data
+      const invalidItems = cart.filter(item => !item.productId || !item.price || !item.quantity);
+      if (invalidItems.length > 0) {
+        showNotification('❌ Some cart items are invalid. Please remove and re-add them.', 'error');
+        console.error('Invalid cart items:', invalidItems);
+        return;
+      }
+
       const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
       const discountAmount = subtotal * discount / 100;
       const afterDiscount = subtotal - discountAmount;
@@ -1754,7 +1800,13 @@ export default function App(){
 
   async function addProduct(){
     try {
-      showNotification('🔄 Adding product and fetching image...', 'info');
+      showNotification('🔄 Adding product...', 'info');
+      
+      // Validate required fields
+      if (!newProduct.name || !newProduct.price) {
+        showNotification('❌ Product name and price are required.', 'error');
+        return;
+      }
       
       const res = await fetch(API('/api/products'), { 
         method:'POST', 
@@ -1768,30 +1820,39 @@ export default function App(){
       
       if (res.ok) { 
         const result = await res.json();
-        const successMessage = result.autoImageFetched 
-          ? `✓ Product "${newProduct.name}" added with auto-fetched image!`
-          : `✓ Product "${newProduct.name}" added (image not found, you can upload manually)`;
+        
+        // Handle image fetch result gracefully
+        let successMessage = `✓ Product "${newProduct.name}" added successfully!`;
+        if (newProduct.autoFetchImage) {
+          if (result.autoImageFetched) {
+            successMessage = `✓ Product "${newProduct.name}" added with image!`;
+          } else {
+            successMessage = `✓ Product "${newProduct.name}" added (image will be processed in background)`;
+          }
+        }
           
         showNotification(successMessage, 'success');
         addActivity('Product Added', newProduct.name);
         setShowAddProduct(false); 
         setNewProduct({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, autoFetchImage: true}); 
-        fetchProducts(); 
-        fetchStats();
+        
+        // Refresh data
+        await fetchProducts(); 
+        await fetchStats();
       } else {
         const err = await res.json()
         showNotification('Failed to add product: ' + (err.error || 'Unknown error'), 'error');
       }
     } catch(e) {
       console.error('Add product error:', e)
-      showNotification('Failed to add product. Please try again.', 'error');
+      showNotification('Failed to add product. Please check your connection and try again.', 'error');
     }
   }
 
   // Auto-fetch image for existing product
   async function autoFetchProductImage(productId, productName) {
     try {
-      showNotification(`🔄 Fetching image for "${productName}"...`, 'info');
+      showNotification(`🔄 Fetching professional image for "${productName}"...`, 'info');
       
       const res = await fetch(API(`/api/products/${productId}/auto-photo`), {
         method: 'POST',
@@ -1804,15 +1865,24 @@ export default function App(){
       
       if (res.ok) {
         const result = await res.json();
-        showNotification(`✓ Image auto-fetched for "${productName}"!`, 'success');
-        fetchProducts(); // Refresh product list
+        showNotification(`✓ Professional image fetched for "${productName}"!`, 'success');
+        await fetchProducts(); // Refresh product list
       } else {
         const err = await res.json();
-        showNotification(`Failed to fetch image: ${err.error}`, 'error');
+        
+        // Handle specific error cases gracefully
+        if (err.error && err.error.includes('suitable image')) {
+          showNotification(`📷 Generated placeholder image for "${productName}". You can upload a custom image later.`, 'warning');
+        } else {
+          showNotification(`⚠️ Image fetch failed: ${err.error || 'Unknown error'}`, 'warning');
+        }
+        
+        // Still refresh products in case a fallback image was created
+        await fetchProducts();
       }
     } catch (e) {
       console.error('Auto-fetch image error:', e);
-      showNotification('Failed to fetch image. Please try again.', 'error');
+      showNotification(`❌ Failed to fetch image for "${productName}". Please check your internet connection.`, 'error');
     }
   }
 
@@ -1845,67 +1915,150 @@ export default function App(){
   }
 
   // Handle barcode scan result
-  function handleBarcodeResult(barcode) {
-    const product = products.find(p => 
-      p.sku === barcode || 
-      p.barcode === barcode || 
-      p.name.toLowerCase().includes(barcode.toLowerCase())
-    );
-    
-    if (product) {
-      if (scannerMode === 'pos') {
-        // Add to cart in POS
-        addToCart(product);
-        showNotification(`✓ "${product.name}" added to cart!`, 'success');
-      } else {
-        // Show product details
-        setSelectedProduct(product);
-        setShowProductDetails(true);
-        showNotification(`✓ Product "${product.name}" found!`, 'success');
+  async function handleBarcodeResult(barcode) {
+    try {
+      if (!barcode || !barcode.trim()) {
+        showNotification('❌ Invalid barcode scanned', 'error');
+        return;
       }
-      setShowBarcodeScanner(false);
-      setScannedBarcode('');
-    } else {
-      showNotification(`❌ No product found with barcode: ${barcode}`, 'error');
+
+      showNotification('🔍 Searching for product...', 'info');
+      
+      // First try API search
+      const res = await fetch(API(`/api/products/barcode/${encodeURIComponent(barcode.trim())}`));
+      
+      if (res.ok) {
+        const product = await res.json();
+        
+        // Ensure product has proper ID structure
+        const formattedProduct = {
+          ...product,
+          id: product.id || product._id,
+          _id: product.id || product._id
+        };
+        
+        if (scannerMode === 'pos') {
+          // Add to cart in POS
+          addToCart(formattedProduct);
+          showNotification(`✓ "${product.name}" added to cart!`, 'success');
+        } else {
+          // Show product details
+          setSelectedProduct(formattedProduct);
+          setShowProductDetails(true);
+          showNotification(`✓ Product "${product.name}" found!`, 'success');
+        }
+        setShowBarcodeScanner(false);
+        setScannedBarcode('');
+        return;
+      }
+      
+      // If API search fails, try local search as fallback
+      const localProduct = products.find(p => 
+        p.sku === barcode || 
+        p.barcode === barcode || 
+        p.name.toLowerCase().includes(barcode.toLowerCase()) ||
+        p.id === barcode ||
+        p._id === barcode
+      );
+      
+      if (localProduct) {
+        if (scannerMode === 'pos') {
+          // Add to cart in POS
+          addToCart(localProduct);
+          showNotification(`✓ "${localProduct.name}" added to cart!`, 'success');
+        } else {
+          // Show product details
+          setSelectedProduct(localProduct);
+          setShowProductDetails(true);
+          showNotification(`✓ Product "${localProduct.name}" found!`, 'success');
+        }
+        setShowBarcodeScanner(false);
+        setScannedBarcode('');
+      } else {
+        showNotification(`❌ No product found with code: ${barcode}`, 'error');
+      }
+    } catch (e) {
+      console.error('Barcode search error:', e);
+      showNotification(`❌ Search failed. Please try again or use manual entry.`, 'error');
+      // Don't close scanner on error, let user try again
     }
   }
 
   // Initialize barcode scanner with html5-qrcode
   useEffect(() => {
-    if (showBarcodeScanner) {
-      let html5QrCode;
-      
-      const initScanner = async () => {
-        try {
-          html5QrCode = new Html5Qrcode("qr-reader");
+    if (!showBarcodeScanner) return;
+
+    let html5QrCode;
+    let timeoutId;
+    
+    const initScanner = async () => {
+      try {
+        // Check if element exists
+        const scannerElement = document.getElementById("qr-reader");
+        if (!scannerElement) {
+          console.error('Scanner element not found');
+          return;
+        }
+
+        html5QrCode = new Html5Qrcode("qr-reader");
+        
+        // Try to get camera permissions first
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          
+          // Prefer back camera if available
+          const backCamera = cameras.find(camera => 
+            camera.label.toLowerCase().includes('back') || 
+            camera.label.toLowerCase().includes('rear') ||
+            camera.label.toLowerCase().includes('environment')
+          );
+          
+          const cameraId = backCamera ? backCamera.id : cameras[0].id;
           
           await html5QrCode.start(
-            { facingMode: "environment" }, // Use back camera
+            cameraId,
             {
               fps: 10,
-              qrbox: { width: 250, height: 250 }
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0
             },
             (decodedText) => {
-              html5QrCode.stop();
-              handleBarcodeResult(decodedText);
+              console.log('🔍 Barcode scanned:', decodedText);
+              if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                  handleBarcodeResult(decodedText);
+                }).catch(err => console.error("Scanner stop error:", err));
+              }
             },
-            () => {
-              // Error callback - ignore scanning errors
+            (errorMessage) => {
+              // Handle scan errors silently (too frequent)
+              if (errorMessage.includes('No QR code found')) {
+                return; // Ignore "no code found" messages
+              }
+              console.debug('Scanner error:', errorMessage);
             }
           );
-        } catch (err) {
-          console.error("Scanner initialization error:", err);
+        } else {
+          console.warn('No cameras found');
+          showNotification('📷 No cameras found. Please use manual entry.', 'warning');
         }
-      };
-      
-      initScanner();
-      
-      return () => {
-        if (html5QrCode) {
-          html5QrCode.stop().catch(e => console.error("Scanner stop error:", e));
-        }
-      };
-    }
+      } catch (err) {
+        console.error("Scanner initialization error:", err);
+        showNotification('📷 Camera access failed. Please use manual entry or check permissions.', 'warning');
+      }
+    };
+    
+    // Delay initialization to ensure DOM is ready
+    timeoutId = setTimeout(initScanner, 200);
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (html5QrCode) {
+        html5QrCode.stop().catch(e => console.error("Scanner stop error:", e));
+      }
+    };
   }, [showBarcodeScanner]);
 
   async function updateStock(productId, newQty){
@@ -1929,34 +2082,6 @@ export default function App(){
     } catch(e) {
       console.error('Update stock error:', e)
       alert('Failed to update stock. Please try again.')
-    }
-  }
-
-  async function seedDatabase() {
-    if (!isAdmin) {
-      alert('Only admin can seed the database');
-      return;
-    }
-    
-    if (!confirm('This will add 50 sample products and 10 sample customers. Continue?')) {
-      return;
-    }
-    
-    try {
-      const res = await fetch(API('/api/seed'), { method: 'POST' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        showNotification(`Database seeded! Added ${data.productsAdded} products and ${data.customersAdded} customers.`, 'success');
-        fetchProducts();
-        fetchCustomers();
-        fetchStats();
-      } else {
-        alert(data.error || 'Failed to seed database');
-      }
-    } catch (e) {
-      console.error('Seed error:', e);
-      alert('Failed to seed database');
     }
   }
 
@@ -2055,26 +2180,33 @@ export default function App(){
   }
 
   async function scanBarcodeInPOS() {
-    const barcode = prompt('Enter or scan barcode:');
+    const barcode = prompt('Enter or scan barcode/SKU/product name:');
     if (!barcode) return;
     
     try {
-      const res = await fetch(API(`/api/products/barcode/${barcode}`));
+      showNotification('🔍 Searching for product...', 'info');
+      
+      const res = await fetch(API(`/api/products/barcode/${encodeURIComponent(barcode)}`));
       
       if (res.ok) {
         const product = await res.json();
-        addToCart({
+        
+        // Ensure product has proper ID structure
+        const formattedProduct = {
           ...product,
-          id: product.id,
-          _id: product.id
-        });
+          id: product.id || product._id,
+          _id: product.id || product._id
+        };
+        
+        addToCart(formattedProduct);
         showNotification(`✓ "${product.name}" added to cart!`, 'success');
       } else {
-        showNotification(`❌ Product with barcode "${barcode}" not found`, 'error');
+        const error = await res.json();
+        showNotification(`❌ ${error.error || 'Product not found'}`, 'error');
       }
     } catch (e) {
       console.error('Barcode scan error:', e);
-      showNotification('Barcode scan failed. Please try again.', 'error');
+      showNotification('❌ Barcode scan failed. Please try again.', 'error');
     }
   }
 
@@ -3168,11 +3300,6 @@ export default function App(){
           <div className="dashboard">
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
               <h2>Dashboard Overview</h2>
-              {isAdmin && products.length === 0 && (
-                <button onClick={seedDatabase} className="btn-primary" style={{background:'#10b981'}}>
-                  🌱 Seed Sample Data (50 Products + 10 Customers)
-                </button>
-              )}
             </div>
             <div className="stats-grid">
               <div className="stat-card scale-in" style={{animationDelay: '0s'}}>

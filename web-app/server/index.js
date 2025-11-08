@@ -113,24 +113,47 @@ async function generateQRCode(data) {
 // Utility: Fetch product image from internet
 async function fetchProductImage(productName) {
   try {
-    // Clean product name for search
-    const searchQuery = encodeURIComponent(productName.toLowerCase().trim());
+    console.log(`🔍 Fetching image for product: ${productName}`);
     
-    // Using Unsplash API for high-quality product images
-    const unsplashUrl = `https://api.unsplash.com/search/photos?query=${searchQuery}&per_page=1&orientation=portrait`;
+    // Clean and enhance product name for better search results
+    const cleanName = productName.toLowerCase().trim();
+    let searchQuery = cleanName;
     
-    // You can also use other free APIs or services
-    const fallbackUrls = [
-      `https://api.unsplash.com/search/photos?query=electronics+${searchQuery}&per_page=1`,
-      `https://api.unsplash.com/search/photos?query=gadget+${searchQuery}&per_page=1`,
-      `https://api.unsplash.com/search/photos?query=device+${searchQuery}&per_page=1`
-    ];
+    // Add category keywords for better professional images
+    const categoryMappings = {
+      'iphone': 'iphone smartphone apple',
+      'samsung': 'samsung galaxy smartphone',
+      'laptop': 'laptop computer technology',
+      'macbook': 'macbook apple laptop',
+      'tv': 'television smart tv electronics',
+      'headphone': 'headphones audio wireless',
+      'tablet': 'tablet ipad technology',
+      'watch': 'smartwatch apple watch',
+      'speaker': 'bluetooth speaker audio',
+      'camera': 'digital camera photography',
+      'mouse': 'computer mouse wireless',
+      'keyboard': 'mechanical keyboard gaming',
+      'phone': 'smartphone mobile phone',
+      'charger': 'usb charger power adapter',
+      'cable': 'usb cable charging cord'
+    };
     
-    // Try Unsplash first (requires API key - free tier available)
+    // Enhance search term based on product category
+    for (const [keyword, enhanced] of Object.entries(categoryMappings)) {
+      if (cleanName.includes(keyword)) {
+        searchQuery = enhanced;
+        break;
+      }
+    }
+    
+    const encodedQuery = encodeURIComponent(searchQuery);
     const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY;
     
-    if (unsplashAccessKey) {
+    if (unsplashAccessKey && unsplashAccessKey !== 'your-unsplash-access-key-here') {
+      console.log(`🌐 Trying Unsplash API with query: ${searchQuery}`);
       try {
+        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodedQuery}&per_page=1&orientation=portrait&category=technology`;
+        
         const response = await fetch(unsplashUrl, {
           headers: {
             'Authorization': `Client-ID ${unsplashAccessKey}`
@@ -143,27 +166,53 @@ async function fetchProductImage(productName) {
             const imageUrl = data.results[0].urls.regular;
             const downloadedImage = await downloadAndSaveImage(imageUrl, productName);
             if (downloadedImage) {
+              console.log(`✅ Unsplash image fetched for: ${productName}`);
               logger.info(`✅ Auto-fetched image for product: ${productName}`);
               return downloadedImage;
             }
+          } else {
+            console.log(`ℹ️ No Unsplash results for: ${searchQuery}`);
           }
+        } else {
+          console.log(`⚠️ Unsplash API error: ${response.status}`);
         }
       } catch (error) {
+        console.log('⚠️ Unsplash API error:', error.message);
         logger.warn('Unsplash API error:', error.message);
+      }
+    } else {
+      console.log('⚠️ Unsplash API key not configured');
+    }
+    
+    // Try multiple fallback image services with professional-looking images
+    const fallbackServices = [
+      // Picsum with technology seed for consistent professional look
+      `https://picsum.photos/seed/${encodeURIComponent(productName)}/400/400`,
+      // Via.placeholder with better styling
+      `https://via.placeholder.com/400x400/f8f9fa/495057?text=${encodeURIComponent(productName.substring(0, 15))}`,
+      // DummyImage with modern design
+      `https://dummyimage.com/400x400/667eea/ffffff&text=${encodeURIComponent(productName.substring(0, 12))}`
+    ];
+    
+    console.log('📷 Trying fallback image services...');
+    for (const fallbackUrl of fallbackServices) {
+      try {
+        const fallbackImage = await downloadAndSaveImage(fallbackUrl, productName, true);
+        if (fallbackImage) {
+          console.log(`📷 Fallback image generated for: ${productName}`);
+          logger.info(`📷 Generated fallback image for product: ${productName}`);
+          return fallbackImage;
+        }
+      } catch (error) {
+        console.log(`⚠️ Fallback service failed:`, error.message);
+        continue;
       }
     }
     
-    // Fallback to placeholder image service
-    const placeholderUrl = `https://via.placeholder.com/400x400/e1e1e1/666666?text=${encodeURIComponent(productName.substring(0, 20))}`;
-    const placeholderImage = await downloadAndSaveImage(placeholderUrl, productName, true);
-    
-    if (placeholderImage) {
-      logger.info(`📷 Generated placeholder image for product: ${productName}`);
-      return placeholderImage;
-    }
-    
+    console.log(`❌ All image services failed for: ${productName}`);
     return null;
   } catch (error) {
+    console.error('❌ Product image fetch error:', error);
     logger.error('Product image fetch error:', error);
     return null;
   }
@@ -677,7 +726,16 @@ app.get('/api/products/barcode/:barcode', async (req, res) => {
     const { barcode } = req.params;
     const db = getDB();
     
-    const product = await db.collection('products').findOne({ barcode: barcode });
+    // Search by barcode, SKU, or product name (case-insensitive)
+    const searchQuery = {
+      $or: [
+        { barcode: barcode },
+        { sku: barcode },
+        { name: { $regex: barcode, $options: 'i' } }
+      ]
+    };
+    
+    const product = await db.collection('products').findOne(searchQuery);
     
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -690,6 +748,7 @@ app.get('/api/products/barcode/:barcode', async (req, res) => {
       costPrice: product.costPrice || 0,
       quantity: product.quantity,
       barcode: product.barcode,
+      sku: product.sku,
       photo: product.photo
     });
   } catch (e) {
@@ -1443,168 +1502,6 @@ app.get('/api/users/check/:id', async (req, res) => {
     });
   } catch (e) {
     logger.error('Check user error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Seed Database with Sample Data
-app.post('/api/seed', async (req, res) => {
-  try {
-    const db = getDB();
-    
-    // Check if already seeded
-    const productCount = await db.collection('products').countDocuments();
-    if (productCount > 0) {
-      return res.status(400).json({ error: 'Database already contains data. Clear it first to seed.' });
-    }
-    
-    // Electronics Products Only
-    const sampleProducts = [
-      // Smartphones
-      { name: 'Samsung Galaxy S23 128GB', quantity: 25, price: 74999, costPrice: 65000, hsnCode: '8517', minStock: 5, sku: 'ELEC001' },
-      { name: 'iPhone 15 128GB', quantity: 20, price: 79900, costPrice: 70000, hsnCode: '8517', minStock: 5, sku: 'ELEC002' },
-      { name: 'OnePlus 11R 256GB', quantity: 30, price: 39999, costPrice: 35000, hsnCode: '8517', minStock: 8, sku: 'ELEC003' },
-      { name: 'Xiaomi Redmi Note 13 Pro', quantity: 40, price: 25999, costPrice: 22000, hsnCode: '8517', minStock: 10, sku: 'ELEC004' },
-      { name: 'Realme 11 Pro 5G', quantity: 35, price: 23999, costPrice: 20000, hsnCode: '8517', minStock: 10, sku: 'ELEC005' },
-      { name: 'Dell Inspiron 15 Laptop', quantity: 15, price: 54990, costPrice: 48000, hsnCode: '8471', minStock: 5, sku: 'ELEC006' },
-      { name: 'HP Pavilion 14 Laptop', quantity: 18, price: 62990, costPrice: 55000, hsnCode: '8471', minStock: 5, sku: 'ELEC007' },
-      { name: 'Lenovo IdeaPad Gaming', quantity: 12, price: 75990, costPrice: 68000, hsnCode: '8471', minStock: 3, sku: 'ELEC008' },
-      { name: 'MacBook Air M2', quantity: 8, price: 114900, costPrice: 105000, hsnCode: '8471', minStock: 3, sku: 'ELEC009' },
-      { name: 'ASUS VivoBook 15', quantity: 20, price: 45990, costPrice: 40000, hsnCode: '8471', minStock: 5, sku: 'ELEC010' },
-      { name: 'Samsung 43" Smart TV 4K', quantity: 15, price: 34990, costPrice: 30000, hsnCode: '8528', minStock: 5, sku: 'ELEC011' },
-      { name: 'LG 55" OLED TV', quantity: 10, price: 89990, costPrice: 80000, hsnCode: '8528', minStock: 3, sku: 'ELEC012' },
-      { name: 'Sony Bravia 50" 4K TV', quantity: 12, price: 54990, costPrice: 48000, hsnCode: '8528', minStock: 4, sku: 'ELEC013' },
-      { name: 'Mi TV 32" HD Ready', quantity: 25, price: 14999, costPrice: 12500, hsnCode: '8528', minStock: 8, sku: 'ELEC014' },
-      { name: 'OnePlus 40" Full HD TV', quantity: 20, price: 21999, costPrice: 18500, hsnCode: '8528', minStock: 6, sku: 'ELEC015' },
-      { name: 'Apple iPad 10th Gen', quantity: 18, price: 44900, costPrice: 40000, hsnCode: '8471', minStock: 5, sku: 'ELEC016' },
-      { name: 'Samsung Galaxy Tab S9', quantity: 15, price: 39999, costPrice: 35000, hsnCode: '8471', minStock: 5, sku: 'ELEC017' },
-      { name: 'Lenovo Tab P11 Plus', quantity: 22, price: 21999, costPrice: 18500, hsnCode: '8471', minStock: 6, sku: 'ELEC018' },
-      { name: 'Apple Watch Series 9', quantity: 20, price: 41900, costPrice: 38000, hsnCode: '9102', minStock: 5, sku: 'ELEC019' },
-      { name: 'Samsung Galaxy Watch 6', quantity: 25, price: 27999, costPrice: 24000, hsnCode: '9102', minStock: 6, sku: 'ELEC020' },
-      { name: 'boAt Smartwatch Xtend', quantity: 50, price: 2999, costPrice: 2200, hsnCode: '9102', minStock: 12, sku: 'ELEC021' },
-      { name: 'Noise ColorFit Pro 4', quantity: 60, price: 2499, costPrice: 1800, hsnCode: '9102', minStock: 15, sku: 'ELEC022' },
-      { name: 'Apple AirPods Pro 2', quantity: 30, price: 26900, costPrice: 24000, hsnCode: '8518', minStock: 8, sku: 'ELEC023' },
-      { name: 'Sony WH-1000XM5 Headphones', quantity: 20, price: 29990, costPrice: 26500, hsnCode: '8518', minStock: 5, sku: 'ELEC024' },
-      { name: 'JBL Tune 770NC Headphones', quantity: 35, price: 6999, costPrice: 5500, hsnCode: '8518', minStock: 10, sku: 'ELEC025' },
-      { name: 'boAt Airdopes 141', quantity: 80, price: 1299, costPrice: 900, hsnCode: '8518', minStock: 20, sku: 'ELEC026' },
-      { name: 'Realme Buds Air 5', quantity: 70, price: 2999, costPrice: 2200, hsnCode: '8518', minStock: 18, sku: 'ELEC027' },
-      { name: 'Canon EOS 1500D DSLR', quantity: 10, price: 39990, costPrice: 36000, hsnCode: '9006', minStock: 3, sku: 'ELEC028' },
-      { name: 'Nikon D3500 Camera', quantity: 8, price: 37990, costPrice: 34000, hsnCode: '9006', minStock: 3, sku: 'ELEC029' },
-      { name: 'GoPro Hero 11 Black', quantity: 12, price: 37999, costPrice: 34000, hsnCode: '9006', minStock: 4, sku: 'ELEC030' },
-      { name: 'DJI Mini 3 Drone', quantity: 6, price: 54999, costPrice: 50000, hsnCode: '8525', minStock: 2, sku: 'ELEC031' },
-      { name: 'PlayStation 5 Console', quantity: 8, price: 49990, costPrice: 45000, hsnCode: '9504', minStock: 3, sku: 'ELEC032' },
-      { name: 'Xbox Series X', quantity: 10, price: 52990, costPrice: 48000, hsnCode: '9504', minStock: 3, sku: 'ELEC033' },
-      { name: 'Nintendo Switch OLED', quantity: 15, price: 34999, costPrice: 31000, hsnCode: '9504', minStock: 4, sku: 'ELEC034' },
-      { name: 'Logitech MX Master 3 Mouse', quantity: 40, price: 8495, costPrice: 7200, hsnCode: '8471', minStock: 10, sku: 'ELEC035' },
-      { name: 'Corsair K70 RGB Keyboard', quantity: 25, price: 12999, costPrice: 11000, hsnCode: '8471', minStock: 8, sku: 'ELEC036' },
-      { name: 'HP LaserJet Pro M126nw', quantity: 12, price: 15999, costPrice: 14000, hsnCode: '8443', minStock: 4, sku: 'ELEC037' },
-      { name: 'Epson EcoTank L3250', quantity: 15, price: 14999, costPrice: 13000, hsnCode: '8443', minStock: 5, sku: 'ELEC038' },
-      { name: 'TP-Link Archer C6 Router', quantity: 45, price: 2199, costPrice: 1700, hsnCode: '8517', minStock: 12, sku: 'ELEC039' },
-      { name: 'D-Link DIR-615 Router', quantity: 50, price: 999, costPrice: 750, hsnCode: '8517', minStock: 15, sku: 'ELEC040' },
-      { name: 'SanDisk 128GB Pendrive', quantity: 100, price: 999, costPrice: 750, hsnCode: '8523', minStock: 25, sku: 'ELEC041' },
-      { name: 'Seagate 1TB External HDD', quantity: 30, price: 3999, costPrice: 3400, hsnCode: '8471', minStock: 10, sku: 'ELEC042' },
-      { name: 'Samsung 256GB SSD', quantity: 35, price: 2999, costPrice: 2500, hsnCode: '8471', minStock: 10, sku: 'ELEC043' },
-      { name: 'Anker 20000mAh Power Bank', quantity: 60, price: 2499, costPrice: 1900, hsnCode: '8507', minStock: 15, sku: 'ELEC044' },
-      { name: 'Mi 10000mAh Power Bank', quantity: 80, price: 1199, costPrice: 900, hsnCode: '8507', minStock: 20, sku: 'ELEC045' },
-      { name: 'Belkin USB-C Hub 7-in-1', quantity: 35, price: 3999, costPrice: 3200, hsnCode: '8471', minStock: 10, sku: 'ELEC046' },
-      { name: 'Philips 20W LED Bulb', quantity: 150, price: 249, costPrice: 180, hsnCode: '8539', minStock: 40, sku: 'ELEC047' },
-      { name: 'Syska 12W LED Bulb', quantity: 200, price: 199, costPrice: 140, hsnCode: '8539', minStock: 50, sku: 'ELEC048' },
-      { name: 'Havells Table Fan', quantity: 40, price: 1799, costPrice: 1400, hsnCode: '8414', minStock: 10, sku: 'ELEC049' },
-      { name: 'Bajaj Ceiling Fan 48"', quantity: 30, price: 1999, costPrice: 1600, hsnCode: '8414', minStock: 8, sku: 'ELEC050' },
-      
-      // Home Appliances & More Electronics
-      { name: 'Samsung 253L Refrigerator', quantity: 12, price: 24990, costPrice: 22000, hsnCode: '8418', minStock: 4, sku: 'HOME001' },
-      { name: 'LG 260L Double Door Fridge', quantity: 10, price: 29990, costPrice: 26500, hsnCode: '8418', minStock: 3, sku: 'HOME002' },
-      { name: 'Whirlpool 190L Refrigerator', quantity: 15, price: 18990, costPrice: 16500, hsnCode: '8418', minStock: 5, sku: 'HOME003' },
-      { name: 'Godrej 185L Single Door Fridge', quantity: 18, price: 14999, costPrice: 13000, hsnCode: '8418', minStock: 6, sku: 'HOME004' },
-      { name: 'IFB 6kg Washing Machine', quantity: 12, price: 19990, costPrice: 17500, hsnCode: '8450', minStock: 4, sku: 'HOME005' },
-      { name: 'Samsung 7kg Front Load WM', quantity: 8, price: 32990, costPrice: 29000, hsnCode: '8450', minStock: 3, sku: 'HOME006' },
-      { name: 'LG 6.5kg Top Load WM', quantity: 14, price: 18990, costPrice: 16500, hsnCode: '8450', minStock: 5, sku: 'HOME007' },
-      { name: 'Whirlpool 7kg Washing Machine', quantity: 10, price: 21990, costPrice: 19500, hsnCode: '8450', minStock: 4, sku: 'HOME008' },
-      { name: 'Voltas 1.5 Ton AC', quantity: 10, price: 35990, costPrice: 32000, hsnCode: '8415', minStock: 3, sku: 'HOME009' },
-      { name: 'Daikin 1 Ton Split AC', quantity: 8, price: 32990, costPrice: 29500, hsnCode: '8415', minStock: 3, sku: 'HOME010' },
-      { name: 'Blue Star 1.5 Ton AC', quantity: 6, price: 42990, costPrice: 38500, hsnCode: '8415', minStock: 2, sku: 'HOME011' },
-      { name: 'LG 1 Ton Inverter AC', quantity: 12, price: 37990, costPrice: 34000, hsnCode: '8415', minStock: 4, sku: 'HOME012' },
-      { name: 'Panasonic Microwave 23L', quantity: 20, price: 7990, costPrice: 6800, hsnCode: '8516', minStock: 6, sku: 'HOME013' },
-      { name: 'Samsung 28L Convection MW', quantity: 15, price: 12990, costPrice: 11200, hsnCode: '8516', minStock: 5, sku: 'HOME014' },
-      { name: 'IFB 20L Microwave Oven', quantity: 18, price: 6990, costPrice: 5900, hsnCode: '8516', minStock: 6, sku: 'HOME015' },
-      { name: 'LG 21L Microwave', quantity: 22, price: 7990, costPrice: 6800, hsnCode: '8516', minStock: 7, sku: 'HOME016' },
-      { name: 'Prestige Induction Cooktop', quantity: 40, price: 2499, costPrice: 1900, hsnCode: '8516', minStock: 12, sku: 'HOME017' },
-      { name: 'Philips Induction Cooker', quantity: 35, price: 2999, costPrice: 2400, hsnCode: '8516', minStock: 10, sku: 'HOME018' },
-      { name: 'Bajaj Majesty ICX 7', quantity: 45, price: 1999, costPrice: 1600, hsnCode: '8516', minStock: 12, sku: 'HOME019' },
-      { name: 'V-Guard Water Purifier', quantity: 18, price: 14999, costPrice: 12500, hsnCode: '8421', minStock: 5, sku: 'HOME020' },
-      { name: 'Kent Grand Plus RO', quantity: 12, price: 18999, costPrice: 16500, hsnCode: '8421', minStock: 4, sku: 'HOME021' },
-      { name: 'Aquaguard Delight RO', quantity: 15, price: 15999, costPrice: 13800, hsnCode: '8421', minStock: 5, sku: 'HOME022' },
-      { name: 'Havells Air Purifier', quantity: 10, price: 12999, costPrice: 11000, hsnCode: '8421', minStock: 3, sku: 'HOME023' },
-      { name: 'Dyson V11 Vacuum Cleaner', quantity: 5, price: 54990, costPrice: 50000, hsnCode: '8508', minStock: 2, sku: 'HOME024' },
-      { name: 'Eureka Forbes Vacuum', quantity: 12, price: 8990, costPrice: 7500, hsnCode: '8508', minStock: 4, sku: 'HOME025' },
-      { name: 'Philips Dry Iron', quantity: 30, price: 799, costPrice: 600, hsnCode: '8516', minStock: 10, sku: 'HOME026' },
-      { name: 'Bajaj Steam Iron', quantity: 25, price: 1299, costPrice: 1000, hsnCode: '8516', minStock: 8, sku: 'HOME027' },
-      { name: 'Philips Hair Dryer', quantity: 35, price: 1499, costPrice: 1150, hsnCode: '8516', minStock: 10, sku: 'HOME028' },
-      { name: 'Havells Hair Straightener', quantity: 30, price: 1799, costPrice: 1400, hsnCode: '8516', minStock: 8, sku: 'HOME029' },
-      { name: 'Philips Trimmer BT3221', quantity: 40, price: 1499, costPrice: 1150, hsnCode: '8510', minStock: 12, sku: 'HOME030' },
-      { name: 'Braun Series 3 Shaver', quantity: 20, price: 4999, costPrice: 4200, hsnCode: '8510', minStock: 6, sku: 'HOME031' },
-      { name: 'Philips Electric Kettle', quantity: 45, price: 1299, costPrice: 950, hsnCode: '8516', minStock: 12, sku: 'HOME032' },
-      { name: 'Prestige Electric Kettle 1.5L', quantity: 50, price: 999, costPrice: 750, hsnCode: '8516', minStock: 15, sku: 'HOME033' },
-      { name: 'Bajaj Pop-up Toaster', quantity: 35, price: 1199, costPrice: 900, hsnCode: '8516', minStock: 10, sku: 'HOME034' },
-      { name: 'Philips HD2582 Toaster', quantity: 30, price: 1999, costPrice: 1600, hsnCode: '8516', minStock: 8, sku: 'HOME035' },
-      { name: 'Prestige Mixer Grinder 750W', quantity: 25, price: 3499, costPrice: 2800, hsnCode: '8509', minStock: 8, sku: 'HOME036' },
-      { name: 'Philips Mixer Grinder HL7756', quantity: 20, price: 4999, costPrice: 4200, hsnCode: '8509', minStock: 6, sku: 'HOME037' },
-      { name: 'Bajaj Rex 500W Mixer', quantity: 30, price: 2299, costPrice: 1800, hsnCode: '8509', minStock: 10, sku: 'HOME038' },
-      { name: 'Prestige Sandwich Maker', quantity: 40, price: 1299, costPrice: 1000, hsnCode: '8516', minStock: 12, sku: 'HOME039' },
-      { name: 'Bajaj Majesty Grill', quantity: 35, price: 2499, costPrice: 2000, hsnCode: '8516', minStock: 10, sku: 'HOME040' },
-      { name: 'Havells OTG 16L', quantity: 15, price: 3999, costPrice: 3300, hsnCode: '8516', minStock: 5, sku: 'HOME041' },
-      { name: 'Bajaj 2200W OTG 22L', quantity: 12, price: 4999, costPrice: 4200, hsnCode: '8516', minStock: 4, sku: 'HOME042' },
-      { name: 'Cello Water Bottle 1L', quantity: 100, price: 249, costPrice: 180, hsnCode: '3924', minStock: 30, sku: 'HOME043' },
-      { name: 'Milton Thermosteel Bottle', quantity: 80, price: 699, costPrice: 520, hsnCode: '7310', minStock: 25, sku: 'HOME044' },
-      { name: 'Tupperware Lunch Box Set', quantity: 60, price: 899, costPrice: 680, hsnCode: '3924', minStock: 18, sku: 'HOME045' },
-      { name: 'Lock&Lock Container Set', quantity: 70, price: 1299, costPrice: 980, hsnCode: '3924', minStock: 20, sku: 'HOME046' },
-      { name: 'Pigeon Gas Stove 2 Burner', quantity: 20, price: 3499, costPrice: 2900, hsnCode: '7321', minStock: 6, sku: 'HOME047' },
-      { name: 'Prestige Glass Top 3 Burner', quantity: 15, price: 5999, costPrice: 5100, hsnCode: '7321', minStock: 5, sku: 'HOME048' },
-      { name: 'Hawkins Pressure Cooker 5L', quantity: 30, price: 2499, costPrice: 2000, hsnCode: '7323', minStock: 10, sku: 'HOME049' },
-      { name: 'Prestige Cooker 3L Inner Lid', quantity: 40, price: 1699, costPrice: 1350, hsnCode: '7323', minStock: 12, sku: 'HOME050' }
-    ];
-    
-    // Sample Customers (10 customers)
-    const sampleCustomers = [
-      { name: 'Rajesh Kumar', phone: '9876543210', address: '123 MG Road, Bangalore 560001', gstin: '29AABCU9603R1ZX' },
-      { name: 'Priya Sharma', phone: '9876543211', address: '456 Park Street, Kolkata 700016', gstin: '19AACFP3578D1Z0' },
-      { name: 'Amit Patel', phone: '9876543212', address: '789 Marine Drive, Mumbai 400002', gstin: '27AADCP1234M1Z5' },
-      { name: 'Sneha Reddy', phone: '9876543213', address: '321 Anna Salai, Chennai 600002', gstin: '33AADCR5678N1Z8' },
-      { name: 'Rahul Singh', phone: '9876543214', address: '654 Connaught Place, Delhi 110001', gstin: '07AAHCS2781A1Z3' },
-      { name: 'Anita Desai', phone: '9876543215', address: '987 FC Road, Pune 411004', gstin: '27AABCD5678E1Z9' },
-      { name: 'Vikram Malhotra', phone: '9876543216', address: '147 Residency Road, Bangalore 560025', gstin: '29AACFM1234P1Z4' },
-      { name: 'Deepa Nair', phone: '9876543217', address: '258 Hill Road, Mumbai 400050', gstin: '27AADCN5678Q1Z7' },
-      { name: 'Suresh Iyer', phone: '9876543218', address: '369 T Nagar, Chennai 600017', gstin: '33AABCI9012R1Z2' },
-      { name: 'Kavita Joshi', phone: '9876543219', address: '741 Civil Lines, Jaipur 302006', gstin: '08AACFJ3456S1Z6' }
-    ];
-    
-    // Insert products
-    const productsWithTimestamp = sampleProducts.map(p => ({
-      ...p,
-      createdAt: new Date(),
-      createdBy: null,
-      createdByUsername: 'System'
-    }));
-    await db.collection('products').insertMany(productsWithTimestamp);
-    
-    // Insert customers
-    const customersWithTimestamp = sampleCustomers.map(c => ({
-      ...c,
-      createdAt: new Date(),
-      createdBy: null,
-      createdByUsername: 'System'
-    }));
-    await db.collection('customers').insertMany(customersWithTimestamp);
-    
-    res.json({ 
-      success: true,
-      message: 'Database seeded successfully!',
-      productsAdded: sampleProducts.length,
-      customersAdded: sampleCustomers.length
-    });
-  } catch (e) {
-    logger.error('Seed error:', e);
     res.status(500).json({ error: e.message });
   }
 });
