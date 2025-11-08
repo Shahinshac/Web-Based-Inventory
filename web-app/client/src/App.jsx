@@ -97,11 +97,13 @@ export default function App(){
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState(null)
   
-  // Dark mode
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved === 'true';
   });
+  
+  // Checkout loading state
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   // Analytics data
   const [analyticsData, setAnalyticsData] = useState({
@@ -1390,9 +1392,12 @@ export default function App(){
 
   async function checkout(){
     try {
+      setCheckoutLoading(true);
+      
       // Validate cart is not empty
       if (!cart || cart.length === 0) {
         showNotification('❌ Cart is empty. Add products before checkout.', 'error');
+        setCheckoutLoading(false);
         return;
       }
 
@@ -1401,6 +1406,7 @@ export default function App(){
       if (invalidItems.length > 0) {
         showNotification('❌ Some cart items are invalid. Please remove and re-add them.', 'error');
         console.error('Invalid cart items:', invalidItems);
+        setCheckoutLoading(false);
         return;
       }
 
@@ -1468,7 +1474,7 @@ export default function App(){
           // Refresh data
           fetchProducts(); 
           fetchInvoices(); 
-          fetchStats() 
+          fetchStats();
         } else if (j.error) {
           trackEvent('sale_failed', 'transaction', j.error);
           showNotification('Checkout failed: ' + j.error, 'error');
@@ -1524,8 +1530,11 @@ export default function App(){
           showNotification('❌ Cannot process sale offline. Please check your connection.', 'error');
         }
       }
+      
+      setCheckoutLoading(false);
     } catch(e) {
-      console.error('Checkout error:', e)
+      console.error('Checkout error:', e);
+      setCheckoutLoading(false);
       if (isOnline) {
         showNotification('Checkout failed. Please try again.', 'error');
       } else {
@@ -2897,7 +2906,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0s'}}>
                 <div className="stat-icon"></div>
                 <div className="stat-info">
-                  <h3>₹{Math.round(stats.totalRevenue || 0)}</h3>
+                  <h3>₹{((stats.totalRevenue || 0).toFixed(1))}</h3>
                   <p>Total Revenue</p>
                 </div>
               </div>
@@ -2922,7 +2931,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0.3s'}}>
                 <div className="stat-icon">📈</div>
                 <div className="stat-info">
-                  <h3>₹{Math.round(stats.todaySales || 0)}</h3>
+                  <h3>₹{((stats.todaySales || 0).toFixed(1))}</h3>
                   <p>Today's Sales</p>
                 </div>
               </div>
@@ -2930,7 +2939,7 @@ export default function App(){
               <div className="stat-card scale-in" style={{animationDelay: '0.4s'}}>
                 <div className="stat-icon">💰</div>
                 <div className="stat-info">
-                  <h3>₹{Math.round(stats.todayProfit || 0)}</h3>
+                  <h3>₹{((stats.todayProfit || 0).toFixed(1))}</h3>
                   <p>Today's Profit</p>
                 </div>
               </div>
@@ -3229,10 +3238,16 @@ export default function App(){
           
           <button 
             onClick={() => requireAuth(checkout)} 
-            disabled={cart.length === 0 || !canMakeSales()} 
+            disabled={cart.length === 0 || !canMakeSales() || checkoutLoading} 
             className="btn-complete-sale"
           >
-            💳 Complete Sale
+            {checkoutLoading ? (
+              <>
+                <span className="spinner-small"></span> Processing...
+              </>
+            ) : (
+              '💳 Complete Sale'
+            )}
           </button>
         </div>
       </div>
