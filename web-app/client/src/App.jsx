@@ -1432,7 +1432,20 @@ export default function App(){
         const j = await res.json()
         if (j.billId) { 
           // Store bill data and show bill modal
-          setLastBill(j);
+          setLastBill({
+            ...j,
+            billNumber: j.billId,
+            customerName: selectedCustomer?.name || 'Walk-in Customer',
+            customerPhone: selectedCustomer?.phone || '',
+            paymentMode: paymentMode,
+            subtotal: subtotal,
+            discountAmount: discountAmount,
+            discountPercent: discount,
+            discountValue: discount,
+            taxRate: taxRate,
+            taxAmount: taxAmount,
+            total: grandTotal
+          });
           setShowBill(true);
           
           // Track successful sale
@@ -1472,7 +1485,18 @@ export default function App(){
           // Create temporary bill data for display
           const offlineBill = {
             billId: offlineId,
-            ...payload,
+            billNumber: offlineId,
+            customerName: selectedCustomer?.name || 'Walk-in Customer',
+            customerPhone: selectedCustomer?.phone || '',
+            paymentMode: paymentMode,
+            subtotal: subtotal,
+            discountAmount: discountAmount,
+            discountPercent: discount,
+            discountValue: discount,
+            taxRate: taxRate,
+            taxAmount: taxAmount,
+            total: grandTotal,
+            items: cart,
             date: new Date().toISOString(),
             isOffline: true
           };
@@ -4461,10 +4485,10 @@ export default function App(){
                 <tbody>
                   {lastBill.items && lastBill.items.map((item, idx) => (
                     <tr key={idx}>
-                      <td>{item.productName}</td>
+                      <td>{item.productName || item.name}</td>
                       <td style={{textAlign:'center'}}>{item.quantity}</td>
-                      <td style={{textAlign:'right'}}>₹{item.unitPrice}</td>
-                      <td style={{textAlign:'right'}}>₹{item.lineSubtotal.toFixed(2)}</td>
+                      <td style={{textAlign:'right'}}>₹{item.unitPrice || item.price}</td>
+                      <td style={{textAlign:'right'}}>₹{((item.unitPrice || item.price) * item.quantity).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
