@@ -1342,16 +1342,36 @@ export default function App(){
       return;
     }
     
+    // Check if product is in stock
+    if (p.quantity <= 0) {
+      showNotification(`❌ ${p.name} is out of stock!`, 'error');
+      return;
+    }
+    
     console.log('Adding to cart:', p.name, 'ID:', productId);
     setCart(c=>{
       const existing = c.find(x=>x.productId===productId)
       if (existing) {
+        // Check if we have enough stock
+        if (existing.quantity + 1 > p.quantity) {
+          showNotification(`❌ Only ${p.quantity} units available for ${p.name}`, 'error');
+          return c;
+        }
         console.log('Increasing quantity for:', p.name);
         return c.map(x=> x.productId===productId ? {...x, quantity: x.quantity+1} : x)
       }
       console.log('Adding new item to cart:', p.name);
-      return [...c, {productId: productId, name: p.name, price: p.price, quantity:1}]
+      return [...c, {
+        productId: productId, 
+        name: p.name, 
+        price: p.price, 
+        costPrice: p.costPrice || 0,
+        quantity: 1
+      }]
     })
+    
+    // Show success feedback
+    showNotification(`✓ ${p.name} added to cart`, 'success');
   }
 
   function increaseCartQty(productId){
@@ -3502,12 +3522,15 @@ export default function App(){
                           justifyContent: 'center'
                         }}>
                           <img 
-                            src={API(p.photo)} 
+                            src={p.photo.startsWith('http') ? p.photo : API(p.photo)} 
                             alt={p.name}
                             style={{
                               width: '100%',
                               height: '100%',
                               objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
                             }}
                           />
                         </div>
@@ -3801,7 +3824,7 @@ export default function App(){
                       <div style={{position:'relative',width:'60px',height:'60px'}}>
                         {prod.photo ? (
                           <img 
-                            src={API(prod.photo)} 
+                            src={prod.photo.startsWith('http') ? prod.photo : API(prod.photo)} 
                             alt={prod.name}
                             style={{
                               width:'60px',
@@ -3810,6 +3833,10 @@ export default function App(){
                               borderRadius:'8px',
                               border:'2px solid #e5e7eb',
                               background:'#f8f9fa'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="width:60px;height:60px;background:linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);borderRadius:8px;display:flex;alignItems:center;justifyContent:center;fontSize:24px;color:#9ca3af;">📦</div>';
                             }}
                           />
                         ) : (
