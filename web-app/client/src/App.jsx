@@ -1,5 +1,6 @@
 import React, {useEffect, useState, useRef} from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
+import { initAnalytics, trackPageView, trackEvent, trackUserInteraction } from './analytics'
 
 // 26:07 Electronics - Inventory Management System
 const API = (path) => {
@@ -112,6 +113,13 @@ export default function App(){
   
   // Admin password from secure environment variable
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'defaultpass123'
+
+  // Helper function to track tab changes
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    trackUserInteraction('navigation', `tab_${newTab}`);
+    trackPageView(`${newTab} Tab`);
+  };
 
   // Permission helper functions
   const canViewProfit = () => {
@@ -377,9 +385,16 @@ export default function App(){
     }
   }
 
-  // PWA Install Prompt
+  // PWA Install Prompt & Initial Data Load
   useEffect(()=>{ 
+    // Initialize analytics
+    initAnalytics();
+    trackPageView('Inventory Management App');
+    
     Promise.all([fetchProducts(), fetchCustomers(), fetchInvoices(), fetchStats()])
+      .then(() => {
+        trackEvent('data_loaded', 'initialization', 'initial_load');
+      })
       .finally(() => setLoading(false))
   }, [])
   
@@ -1398,6 +1413,10 @@ export default function App(){
           setLastBill(j);
           setShowBill(true);
           
+          // Track successful sale
+          trackEvent('sale_completed', 'transaction', `Bill-${j.billId}`, grandTotal);
+          trackEvent('payment_method', 'transaction', paymentMode);
+          
           // Show success notification
           showNotification(`✓ Sale completed! Bill #${j.billId}`, 'success');
           
@@ -1416,6 +1435,7 @@ export default function App(){
           fetchInvoices(); 
           fetchStats() 
         } else if (j.error) {
+          trackEvent('sale_failed', 'transaction', j.error);
           showNotification('Checkout failed: ' + j.error, 'error');
         }
       } else {
@@ -3279,16 +3299,16 @@ export default function App(){
           <span style={{marginLeft: '8px'}}>Electronics</span>
         </h1>
         <nav>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('dashboard')}} className={tab==='dashboard'?'active':''}>Dashboard</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('pos')}} className={tab==='pos'?'active':''}>Transactions</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('products')}} className={tab==='products'?'active':''}>Products</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('inventory')}} className={tab==='inventory'?'active':''}>📦 Inventory</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('customers')}} className={tab==='customers'?'active':''}>Customers</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('invoices')}} className={tab==='invoices'?'active':''}>Invoices</button>
-          <button onClick={async ()=>{if(await checkUserValidity()){setTab('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>📊 Analytics</button>
-          <button onClick={async ()=>{if(await checkUserValidity())setTab('reports')}} className={tab==='reports'?'active':''}>Reports</button>
-          {isAdmin && <button onClick={()=>{setTab('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
-          {isAdmin && <button onClick={()=>{setTab('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={tab==='dashboard'?'active':''}>Dashboard</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={tab==='pos'?'active':''}>Transactions</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>Products</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📦 Inventory</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>Customers</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={tab==='invoices'?'active':''}>Invoices</button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>📊 Analytics</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>Reports</button>
+          {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
+          {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
         </nav>
         <div style={{display:'inline-block', marginLeft:'20px', verticalAlign:'middle'}}>
           <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
