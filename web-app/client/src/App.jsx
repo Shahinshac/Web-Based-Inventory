@@ -1421,7 +1421,152 @@ export default function App(){
     }
   }
 
-  // PDF export functions removed - CSV export only
+  // CSV Export Functions
+  function downloadSalesReport() {
+    try {
+      const headers = ['Invoice ID', 'Date', 'Customer', 'Items', 'Subtotal', 'Discount', 'Tax', 'Total', 'Profit', 'Payment Mode', 'Salesperson'];
+      const rows = invoices.map(inv => [
+        inv.invoiceId || inv._id,
+        new Date(inv.created_at).toLocaleDateString(),
+        inv.customerName || 'Walk-in',
+        inv.items?.length || 0,
+        `₹${(inv.subtotal || 0).toFixed(2)}`,
+        `₹${(inv.discountAmount || 0).toFixed(2)}`,
+        `₹${(inv.taxAmount || 0).toFixed(2)}`,
+        `₹${(inv.total || 0).toFixed(2)}`,
+        `₹${(inv.profit || 0).toFixed(2)}`,
+        inv.paymentMode || 'Cash',
+        inv.salesperson || 'N/A'
+      ]);
+      
+      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sales-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification('✅ Sales report downloaded!', 'success');
+    } catch(e) {
+      console.error('Download error:', e);
+      showNotification('❌ Failed to download report', 'error');
+    }
+  }
+
+  function downloadInventoryReport() {
+    try {
+      const headers = ['Product Name', 'SKU/Barcode', 'Category', 'Quantity', 'Price', 'Cost Price', 'Profit Margin', 'HSN Code', 'Status'];
+      const rows = products.map(prod => [
+        prod.name,
+        prod.barcode || prod.serialNo || 'N/A',
+        prod.category || 'N/A',
+        prod.quantity,
+        `₹${(prod.price || 0).toFixed(2)}`,
+        `₹${(prod.costPrice || 0).toFixed(2)}`,
+        `${(((prod.price - prod.costPrice) / prod.price * 100) || 0).toFixed(1)}%`,
+        prod.hsnCode || '9999',
+        prod.quantity === 0 ? 'Out of Stock' : prod.quantity < 10 ? 'Low Stock' : 'In Stock'
+      ]);
+      
+      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification('✅ Inventory report downloaded!', 'success');
+    } catch(e) {
+      console.error('Download error:', e);
+      showNotification('❌ Failed to download report', 'error');
+    }
+  }
+
+  function downloadCustomerReport() {
+    try {
+      const headers = ['Customer Name', 'Phone', 'Email', 'Address', 'GSTIN', 'Total Purchases'];
+      const rows = customers.map(cust => {
+        const purchases = invoices.filter(inv => inv.customerId === cust._id || inv.customerId === cust.id);
+        return [
+          cust.name,
+          cust.phone || 'N/A',
+          cust.email || 'N/A',
+          cust.address || 'N/A',
+          cust.gstin || 'N/A',
+          purchases.length
+        ];
+      });
+      
+      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customer-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification('✅ Customer report downloaded!', 'success');
+    } catch(e) {
+      console.error('Download error:', e);
+      showNotification('❌ Failed to download report', 'error');
+    }
+  }
+
+  function downloadProfitReport() {
+    try {
+      const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+      const totalProfit = invoices.reduce((sum, inv) => sum + (inv.profit || 0), 0);
+      const totalCost = totalRevenue - totalProfit;
+      const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
+      
+      const headers = ['Metric', 'Value'];
+      const rows = [
+        ['Total Revenue', `₹${totalRevenue.toFixed(2)}`],
+        ['Total Cost', `₹${totalCost.toFixed(2)}`],
+        ['Total Profit', `₹${totalProfit.toFixed(2)}`],
+        ['Profit Margin', `${profitMargin}%`],
+        ['Total Invoices', invoices.length],
+        ['Average Sale', `₹${(totalRevenue / (invoices.length || 1)).toFixed(2)}`],
+        ['Average Profit per Sale', `₹${(totalProfit / (invoices.length || 1)).toFixed(2)}`],
+        ['', ''],
+        ['Top Selling Products', ''],
+        ['Product', 'Units Sold']
+      ];
+      
+      // Calculate top products
+      const productSales = {};
+      invoices.forEach(inv => {
+        inv.items?.forEach(item => {
+          if (!productSales[item.name]) {
+            productSales[item.name] = 0;
+          }
+          productSales[item.name] += item.quantity;
+        });
+      });
+      
+      const topProducts = Object.entries(productSales)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, qty]) => [name, qty]);
+      
+      rows.push(...topProducts);
+      
+      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `profit-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification('✅ Profit report downloaded!', 'success');
+    } catch(e) {
+      console.error('Download error:', e);
+      showNotification('❌ Failed to download report', 'error');
+    }
+  }
 
   function addToCart(p){
     if (!p || !p.id) {
@@ -3413,11 +3558,11 @@ export default function App(){
               </div>
             </div>
 
-            {/* Sales Trend Graph - Demo */}
+            {/* Sales Trend Graph - Real Data */}
             <div className="card" style={{marginBottom:'30px',padding:'30px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
                 <h3>📈 Sales Trend (Last 7 Days)</h3>
-                <span style={{fontSize:'12px',color:'#999'}}>Demo Chart</span>
+                <span style={{fontSize:'12px',color:'#4ade80',fontWeight:'600'}}>Live Data</span>
               </div>
               <div style={{
                 display:'flex',
@@ -3430,66 +3575,102 @@ export default function App(){
                 background:'#f8fafc',
                 borderRadius:'12px'
               }}>
-                {[
-                  {day: 'Mon', value: 65, color: '#667eea'},
-                  {day: 'Tue', value: 45, color: '#764ba2'},
-                  {day: 'Wed', value: 80, color: '#f093fb'},
-                  {day: 'Thu', value: 55, color: '#4facfe'},
-                  {day: 'Fri', value: 90, color: '#00f2fe'},
-                  {day: 'Sat', value: 70, color: '#43e97b'},
-                  {day: 'Sun', value: 60, color: '#38f9d7'}
-                ].map((item, index) => (
-                  <div key={index} style={{
-                    flex:1,
-                    display:'flex',
-                    flexDirection:'column',
-                    alignItems:'center',
-                    gap:'10px'
-                  }}>
-                    <div className="chart-bar" style={{
-                      width:'100%',
-                      height:`${item.value}%`,
-                      background:`linear-gradient(180deg, ${item.color} 0%, ${item.color}88 100%)`,
-                      borderRadius:'8px 8px 0 0',
-                      transition:'all 0.3s ease',
-                      cursor:'pointer',
-                      position:'relative'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                    >
-                      <div style={{
-                        position:'absolute',
-                        top:'-25px',
-                        left:'50%',
-                        transform:'translateX(-50%)',
-                        background:'rgba(0,0,0,0.8)',
-                        color:'white',
-                        padding:'4px 8px',
-                        borderRadius:'6px',
-                        fontSize:'11px',
-                        fontWeight:'bold',
-                        opacity:0,
-                        pointerEvents:'none',
-                        transition:'opacity 0.2s'
-                      }}
-                      className="chart-tooltip"
-                      >
-                        ₹{item.value}k
+                {(() => {
+                  const last7Days = [];
+                  const today = new Date();
+                  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                  const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+                  
+                  // Generate last 7 days data
+                  for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    date.setHours(0, 0, 0, 0);
+                    
+                    const nextDate = new Date(date);
+                    nextDate.setDate(date.getDate() + 1);
+                    
+                    // Calculate sales for this day
+                    const daySales = invoices.filter(inv => {
+                      const invDate = new Date(inv.created_at);
+                      return invDate >= date && invDate < nextDate;
+                    }).reduce((sum, inv) => sum + (inv.total || 0), 0);
+                    
+                    last7Days.push({
+                      day: dayNames[date.getDay()],
+                      value: daySales,
+                      color: colors[6 - i]
+                    });
+                  }
+                  
+                  // Find max value for scaling
+                  const maxValue = Math.max(...last7Days.map(d => d.value), 1);
+                  
+                  return last7Days.map((item, index) => {
+                    const heightPercent = maxValue > 0 ? (item.value / maxValue * 100) : 0;
+                    
+                    return (
+                      <div key={index} style={{
+                        flex:1,
+                        display:'flex',
+                        flexDirection:'column',
+                        alignItems:'center',
+                        gap:'10px'
+                      }}>
+                        <div className="chart-bar" style={{
+                          width:'100%',
+                          height:`${Math.max(heightPercent, 5)}%`,
+                          background:`linear-gradient(180deg, ${item.color} 0%, ${item.color}88 100%)`,
+                          borderRadius:'8px 8px 0 0',
+                          transition:'all 0.3s ease',
+                          cursor:'pointer',
+                          position:'relative'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                          e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
+                          e.currentTarget.querySelector('.chart-tooltip').style.opacity = '1';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.querySelector('.chart-tooltip').style.opacity = '0';
+                        }}
+                        >
+                          <div style={{
+                            position:'absolute',
+                            top:'-30px',
+                            left:'50%',
+                            transform:'translateX(-50%)',
+                            background:'rgba(0,0,0,0.8)',
+                            color:'white',
+                            padding:'4px 8px',
+                            borderRadius:'6px',
+                            fontSize:'11px',
+                            fontWeight:'bold',
+                            opacity:0,
+                            pointerEvents:'none',
+                            transition:'opacity 0.2s',
+                            whiteSpace:'nowrap'
+                          }}
+                          className="chart-tooltip"
+                          >
+                            ₹{item.value.toFixed(0)}
+                          </div>
+                        </div>
+                        <span style={{fontSize:'12px',fontWeight:'600',color:'#64748b'}}>{item.day}</span>
                       </div>
-                    </div>
-                    <span style={{fontSize:'12px',fontWeight:'600',color:'#64748b'}}>{item.day}</span>
-                  </div>
-                ))}
+                    );
+                  });
+                })()}
               </div>
-              <p style={{textAlign:'center',marginTop:'15px',color:'#94a3b8',fontSize:'13px'}}>
-                💡 This is a demo visualization. Real sales data will be displayed here once you have transactions.
+              <p style={{textAlign:'center',marginTop:'15px',color:'#64748b',fontSize:'13px'}}>
+                � Showing real sales data from the last 7 days • Total: ₹{invoices.filter(inv => {
+                  const invDate = new Date(inv.created_at);
+                  const weekAgo = new Date();
+                  weekAgo.setDate(weekAgo.getDate() - 7);
+                  return invDate >= weekAgo;
+                }).reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}
               </p>
             </div>
 
