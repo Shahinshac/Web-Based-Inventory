@@ -2,8 +2,8 @@ import React, {useEffect, useState, useRef} from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { initAnalytics, trackPageView, trackEvent, trackUserInteraction } from './analytics'
 import Login from './Login'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+// PDF features removed - CSV only
+// PDF features removed - CSV only
 import { DEFAULT_GST, GST_PERCENT, fmt1, formatCurrency, PAYMENT_MODES, PAYMENT_MODE_LABELS, validateSplitPayment } from './constants'
 
 // 26:07 Electronics - Inventory Management System
@@ -1420,179 +1420,7 @@ export default function App(){
     }
   }
 
-  // Download Reports Functions - All in PDF Format
-  function downloadSalesReport() {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Sales Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
-    doc.text(`Total Transactions: ${invoices.length}`, 105, 35, { align: 'center' });
-    
-    // Table data
-    const tableData = invoices.map(inv => [
-      `#${inv.billNumber || inv.id}`,
-      new Date(inv.created_at || inv.date).toLocaleDateString(),
-      inv.customer_name || inv.customerName || 'Walk-in',
-      (inv.items?.length || 0).toString(),
-      `₹${(inv.total || inv.grandTotal || 0).toFixed(1)}`,
-      inv.paymentMode || 'Cash',
-      `₹${(inv.totalProfit || 0).toFixed(1)}`
-    ]);
-    
-    doc.autoTable({
-      startY: 45,
-      head: [['Invoice #', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Profit']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [41, 128, 185] },
-      styles: { fontSize: 8 }
-    });
-    
-    // Summary
-    const finalY = doc.lastAutoTable.finalY + 10;
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
-    const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Total Revenue: ₹${totalRevenue.toFixed(1)}`, 20, finalY);
-    doc.text(`Total Profit: ₹${totalProfit.toFixed(1)}`, 20, finalY + 8);
-    
-    doc.save(`Sales-Report-${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('✅ Sales Report PDF downloaded!', 'success');
-  }
-
-  function downloadInventoryReport() {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Inventory Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
-    doc.text(`Total Products: ${products.length}`, 105, 35, { align: 'center' });
-    
-    // Table data
-    const tableData = products.map((prod, index) => [
-      (index + 1).toString(),
-      prod.name,
-      prod.quantity.toString(),
-      `₹${prod.price.toFixed(1)}`,
-      `₹${(prod.costPrice || 0).toFixed(1)}`,
-      `₹${(prod.price - (prod.costPrice || 0)).toFixed(1)}`,
-      prod.hsnCode || 'N/A',
-      prod.quantity === 0 ? 'Out of Stock' : prod.quantity < 10 ? 'Low Stock' : 'In Stock'
-    ]);
-    
-    doc.autoTable({
-      startY: 45,
-      head: [['#', 'Name', 'Stock', 'Price', 'Cost', 'Profit/Unit', 'HSN', 'Status']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [46, 204, 113] },
-      styles: { fontSize: 7 }
-    });
-    
-    // Summary
-    const finalY = doc.lastAutoTable.finalY + 10;
-    const lowStock = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
-    const outOfStock = products.filter(p => p.quantity === 0).length;
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Low Stock Items: ${lowStock}`, 20, finalY);
-    doc.text(`Out of Stock Items: ${outOfStock}`, 20, finalY + 7);
-    
-    doc.save(`Inventory-Report-${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('✅ Inventory Report PDF downloaded!', 'success');
-  }
-
-  function downloadCustomerReport() {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Customer Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
-    doc.text(`Total Customers: ${customers.length}`, 105, 35, { align: 'center' });
-    
-    // Table data
-    const tableData = customers.map((cust, index) => [
-      (index + 1).toString(),
-      cust.name,
-      cust.phone,
-      cust.address || 'N/A',
-      cust.gstin || 'N/A'
-    ]);
-    
-    doc.autoTable({
-      startY: 45,
-      head: [['#', 'Name', 'Phone', 'Address', 'GSTIN']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [155, 89, 182] },
-      styles: { fontSize: 9 }
-    });
-    
-    doc.save(`Customer-Report-${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('✅ Customer Report PDF downloaded!', 'success');
-  }
-
-  function downloadProfitReport() {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Profit Analysis Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
-    
-    // Calculate metrics
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
-    const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
-    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
-    const avgProfitPerSale = invoices.length > 0 ? (totalProfit / invoices.length).toFixed(1) : 0;
-    const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
-    
-    // Table data
-    const tableData = [
-      ['Total Revenue', `₹${totalRevenue.toFixed(1)}`],
-      ['Total Profit', `₹${totalProfit.toFixed(1)}`],
-      ['Profit Margin', `${profitMargin}%`],
-      ['Total Invoices', invoices.length.toString()],
-      ['Average Profit/Sale', `₹${avgProfitPerSale}`],
-      ['Total Products', products.length.toString()],
-      ['Total Customers', customers.length.toString()],
-      ['Low Stock Items', lowStockItems.toString()],
-      ['Out of Stock Items', products.filter(p => p.quantity === 0).length.toString()]
-    ];
-    
-    doc.autoTable({
-      startY: 40,
-      head: [['Metric', 'Value']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [231, 76, 60], fontSize: 12 },
-      styles: { fontSize: 11 },
-      columnStyles: {
-        0: { fontStyle: 'bold', fillColor: [245, 245, 245] }
-      }
-    });
-    
-    // Add visual emphasis
-    const finalY = doc.lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(46, 204, 113);
-    doc.text(`Profit Margin: ${profitMargin}%`, 105, finalY, { align: 'center' });
-    
-    doc.save(`Profit-Analysis-${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('✅ Profit Analysis PDF downloaded!', 'success');
-  }
+  // PDF export functions removed - CSV export only
 
   function addToCart(p){
     if (!p || !p.id) {
@@ -4556,20 +4384,13 @@ export default function App(){
             {/* Download Reports Section */}
             <div className="download-reports-section">
               <h3>📥 Download Reports</h3>
-              <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV or PDF format</p>
+              <p style={{color:'#666',marginBottom:'20px'}}>Export reports in CSV format</p>
               <div className="download-buttons-grid">
                 <button onClick={downloadSalesReport} className="download-btn sales">
                   <span className="btn-icon">📊</span>
                   <div>
                     <strong>Sales Report (CSV)</strong>
                     <small>All invoices with profit details</small>
-                  </div>
-                </button>
-                <button onClick={exportTransactionsToPDF} className="download-btn sales">
-                  <span className="btn-icon">📄</span>
-                  <div>
-                    <strong>Transactions (PDF)</strong>
-                    <small>Professional PDF report</small>
                   </div>
                 </button>
                 <button onClick={downloadInventoryReport} className="download-btn inventory">
@@ -4579,24 +4400,17 @@ export default function App(){
                     <small>Stock levels & pricing</small>
                   </div>
                 </button>
-                <button onClick={exportProductsToPDF} className="download-btn inventory">
-                  <span className="btn-icon">�</span>
-                  <div>
-                    <strong>Products (PDF)</strong>
-                    <small>Complete product list</small>
-                  </div>
-                </button>
                 <button onClick={downloadCustomerReport} className="download-btn customers">
-                  <span className="btn-icon">�</span>
+                  <span className="btn-icon">👥</span>
                   <div>
-                    <strong>Customer Report</strong>
+                    <strong>Customer Report (CSV)</strong>
                     <small>Customer database</small>
                   </div>
                 </button>
                 <button onClick={downloadProfitReport} className="download-btn profit">
-                  <span className="btn-icon">�</span>
+                  <span className="btn-icon">💰</span>
                   <div>
-                    <strong>Profit Analysis</strong>
+                    <strong>Profit Analysis (CSV)</strong>
                     <small>Financial overview</small>
                   </div>
                 </button>
@@ -4718,13 +4532,12 @@ export default function App(){
                     <th>GST</th>
                     <th>Total</th>
                     <th>Payment</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getFilteredInvoices().length === 0 ? (
                     <tr>
-                      <td colSpan="10" style={{textAlign:'center',padding:'40px',color:'#999'}}>
+                      <td colSpan="9" style={{textAlign:'center',padding:'40px',color:'#999'}}>
                         No invoices found for selected period
                       </td>
                     </tr>
@@ -4759,15 +4572,6 @@ export default function App(){
                           }`}>
                             {inv.paymentMode || 'Cash'}
                           </span>
-                        </td>
-                        <td>
-                          <button 
-                            onClick={() => exportInvoiceToPDF(inv)}
-                            className="btn-sm btn-primary"
-                            style={{padding:'6px 12px',fontSize:'12px'}}
-                          >
-                            📄 PDF
-                          </button>
                         </td>
                       </tr>
                     ))
