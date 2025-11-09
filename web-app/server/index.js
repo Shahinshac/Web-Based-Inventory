@@ -263,6 +263,9 @@ async function downloadAndSaveImage(imageUrl, productName, isPlaceholder = false
 // HTTP request logging middleware
 app.use(logger.httpLogger);
 
+// Root health check
+app.get('/', (req, res) => res.send('Welcome To Our BoB\'s Inventory Collection App ✨✨🎊🎉'));
+
 // Simple health
 app.get('/api/ping', (req, res) => res.json({ ok: true }));
 
