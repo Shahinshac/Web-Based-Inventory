@@ -3180,8 +3180,10 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>� Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
-          <span className="auth-badge authenticated" style={{marginLeft:'20px'}}>✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-          <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px',background:'#48bb78'}}>🚪 Logout</button>
+          <span style={{display:'inline-flex', alignItems:'center', gap:'10px', marginLeft:'20px', whiteSpace:'nowrap'}}>
+            <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
+            <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78'}}>🚪 Logout</button>
+          </span>
         </nav>
       </header>
       <main>
