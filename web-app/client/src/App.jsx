@@ -2250,10 +2250,10 @@ export default function App(){
                 <span>${numberToWords(Math.round(grandTotal))} Rupees Only</span>
               </div>
               
-              <!-- Split Payment Details -->
+              <!-- Payment Details -->
               ${isSplitPayment && splitDetails ? `
                 <div class="payment-details">
-                  <h4>💰 Payment Breakdown</h4>
+                  <h4>💰 Payment Breakdown (Split Payment)</h4>
                   <div class="payment-split">
                     ${splitDetails.cashAmount > 0 ? `
                       <div class="payment-item">
@@ -2275,7 +2275,22 @@ export default function App(){
                     ` : ''}
                   </div>
                 </div>
-              ` : ''}
+              ` : `
+                <div class="payment-details">
+                  <h4>💰 Payment Details</h4>
+                  <div class="payment-split">
+                    <div class="payment-item">
+                      <div class="payment-method">${
+                        paymentMode === 'cash' || paymentMode === 'Cash' ? '💵 Cash' :
+                        paymentMode === 'upi' || paymentMode === 'UPI' ? '📱 UPI' :
+                        paymentMode === 'card' || paymentMode === 'Card' ? '💳 Card' :
+                        '💵 ' + paymentMode
+                      }</div>
+                      <div class="payment-amount">₹${fmt1(grandTotal)}</div>
+                    </div>
+                  </div>
+                </div>
+              `}
               
               <!-- Terms & Conditions -->
               <div class="terms-section">
