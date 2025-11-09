@@ -1139,6 +1139,32 @@ export default function App(){
     }
   }
 
+  // Change user role (Admin only)
+  async function changeUserRole(userId, newRole, username) {
+    if (!isAdmin) return
+    
+    if (!confirm(`Change role for "${username}" to "${newRole}"?`)) return
+    
+    try {
+      const res = await fetch(API(`/api/users/${userId}/role`), {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ role: newRole })
+      })
+      
+      if (res.ok) {
+        alert(`✅ Role updated successfully! "${username}" is now a ${newRole}.`)
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to update role.')
+      }
+    } catch(e) {
+      console.error('Change role error:', e)
+      alert('Failed to update role.')
+    }
+  }
+
   function cancelAuth() {
     setShowAuthModal(false)
     setAuthError('')
@@ -4301,15 +4327,24 @@ export default function App(){
                         </td>
                         <td>{user.email}</td>
                         <td>
-                          <span className="badge" style={{
-                            background: user.role === 'admin' ? '#667eea' : '#48bb78',
-                            color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px'
-                          }}>
-                            {user.role}
-                          </span>
+                          <select
+                            value={user.role}
+                            onChange={(e) => changeUserRole(user._id, e.target.value, user.username)}
+                            style={{
+                              background: user.role === 'admin' ? '#667eea' : user.role === 'manager' ? '#4299e1' : '#48bb78',
+                              color: 'white',
+                              padding: '6px 10px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: '500'
+                            }}
+                          >
+                            <option value="admin">👑 Admin</option>
+                            <option value="manager">👔 Manager</option>
+                            <option value="cashier">💰 Cashier</option>
+                          </select>
                         </td>
                         <td>
                           {user.approved ? (

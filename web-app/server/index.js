@@ -1455,6 +1455,37 @@ app.patch('/api/users/:id/unapprove', async (req, res) => {
   }
 });
 
+// Change User Role (Admin Only)
+app.patch('/api/users/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const db = getDB();
+    
+    // Validate role
+    const validRoles = ['admin', 'manager', 'cashier'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be admin, manager, or cashier.' });
+    }
+    
+    // Update user role
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { role: role } }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    logger.info(`User role updated: ${id} -> ${role}`);
+    res.json({ success: true, message: 'User role updated successfully', role: role });
+  } catch (e) {
+    logger.error('Change user role error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Delete User (Admin Only)
 app.delete('/api/users/:id', async (req, res) => {
   try {
