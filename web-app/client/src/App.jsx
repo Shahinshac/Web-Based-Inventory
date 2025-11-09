@@ -3216,7 +3216,7 @@ export default function App(){
             </div>
             <div className="stats-grid">
               <div className="stat-card scale-in" style={{animationDelay: '0s'}}>
-                <div className="stat-icon"></div>
+                <div className="stat-icon">💰</div>
                 <div className="stat-info">
                   <h3>₹{((stats.totalRevenue || 0).toFixed(1))}</h3>
                   <p>Total Revenue</p>
