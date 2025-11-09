@@ -3160,12 +3160,10 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
-          {isAdmin && <button onClick={()=>handleTabChange('admin')} className={tab==='admin'?'active':''}>🔐 Admin</button>}
-          <button onClick={()=>handleTabChange('login')} className={tab==='login'?'active':''}>🔑 Login</button>
         </nav>
         <div style={{display:'inline-block', marginLeft:'20px', verticalAlign:'middle'}}>
           <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-          <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px'}}>Logout</button>
+          <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px',background:'#48bb78'}}>Logout</button>
         </div>
       </header>
       <main>
@@ -4501,104 +4499,6 @@ export default function App(){
                   Showing last {auditLogs.length} activities
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Admin Tab (Admin Only) */}
-        {tab==='admin' && isAdmin && (
-          <div>
-            <h2>🔐 Admin Panel</h2>
-            <div style={{background:'white',borderRadius:'15px',padding:'30px',boxShadow:'0 4px 15px rgba(0,0,0,0.1)',marginTop:'20px'}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(250px, 1fr))',gap:'20px'}}>
-                <div className="stat-card" style={{background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',color:'white'}}>
-                  <div style={{fontSize:'14px',opacity:0.9,marginBottom:'10px'}}>System Status</div>
-                  <div style={{fontSize:'24px',fontWeight:'bold'}}>✅ Active</div>
-                  <div style={{fontSize:'12px',opacity:0.8,marginTop:'5px'}}>All systems operational</div>
-                </div>
-                <div className="stat-card" style={{background:'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',color:'white'}}>
-                  <div style={{fontSize:'14px',opacity:0.9,marginBottom:'10px'}}>Total Users</div>
-                  <div style={{fontSize:'24px',fontWeight:'bold'}}>{users.length}</div>
-                  <div style={{fontSize:'12px',opacity:0.8,marginTop:'5px'}}>Registered accounts</div>
-                </div>
-                <div className="stat-card" style={{background:'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',color:'white'}}>
-                  <div style={{fontSize:'14px',opacity:0.9,marginBottom:'10px'}}>Database</div>
-                  <div style={{fontSize:'24px',fontWeight:'bold'}}>✓ Connected</div>
-                  <div style={{fontSize:'12px',opacity:0.8,marginTop:'5px'}}>PostgreSQL running</div>
-                </div>
-              </div>
-              
-              <div style={{marginTop:'30px',padding:'20px',background:'#f7fafc',borderRadius:'10px'}}>
-                <h3 style={{marginTop:0,marginBottom:'20px'}}>Quick Actions</h3>
-                <div style={{display:'flex',gap:'15px',flexWrap:'wrap'}}>
-                  <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className="btn-primary">
-                    👥 Manage Users
-                  </button>
-                  <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className="btn-primary">
-                    📋 View Audit Logs
-                  </button>
-                  <button onClick={()=>handleTabChange('backup')} className="btn-primary">
-                    💾 Backup & Restore
-                  </button>
-                  <button onClick={()=>handleTabChange('settings')} className="btn-primary">
-                    ⚙️ System Settings
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Login Tab */}
-        {tab==='login' && (
-          <div>
-            <h2>🔑 Login Information</h2>
-            <div style={{background:'white',borderRadius:'15px',padding:'30px',boxShadow:'0 4px 15px rgba(0,0,0,0.1)',marginTop:'20px',maxWidth:'600px',margin:'20px auto'}}>
-              <div style={{textAlign:'center',marginBottom:'30px'}}>
-                <div style={{fontSize:'64px',marginBottom:'10px'}}>👤</div>
-                <h3 style={{margin:0,color:'#333'}}>Current Session</h3>
-              </div>
-              
-              <div style={{background:'#f7fafc',borderRadius:'10px',padding:'20px',marginBottom:'20px'}}>
-                <div style={{display:'grid',gap:'15px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px',background:'white',borderRadius:'8px'}}>
-                    <span style={{color:'#666',fontSize:'14px'}}>Username:</span>
-                    <span style={{fontWeight:'bold',color:'#333'}}>{currentUser?.username || 'Not logged in'}</span>
-                  </div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px',background:'white',borderRadius:'8px'}}>
-                    <span style={{color:'#666',fontSize:'14px'}}>Role:</span>
-                    <span style={{
-                      background: isAdmin ? '#667eea' : '#48bb78',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      {isAdmin ? '👑 Admin' : '👤 User'}
-                    </span>
-                  </div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px',background:'white',borderRadius:'8px'}}>
-                    <span style={{color:'#666',fontSize:'14px'}}>Status:</span>
-                    <span style={{
-                      background: '#48bb78',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      ✓ Active
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{textAlign:'center'}}>
-                <button onClick={handleLogout} className="btn-danger" style={{padding:'12px 30px',fontSize:'16px'}}>
-                  🚪 Logout
-                </button>
-              </div>
             </div>
           </div>
         )}
