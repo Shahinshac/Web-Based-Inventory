@@ -3150,18 +3150,18 @@ export default function App(){
           <span style={{marginLeft: '8px'}}>Electronics</span>
         </h1>
         <nav>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={tab==='dashboard'?'active':''}>Dashboard</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={tab==='pos'?'active':''}>Transactions</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>Products</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📦 Inventory</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>Customers</button>
-          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>📊 Analytics</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>Reports</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={tab==='dashboard'?'active':''}>📱 Dashboard</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={tab==='pos'?'active':''}>💳 Transactions</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>📦 Products</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>� Inventory</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>👥 Customers</button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>� Analytics</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>📄 Reports</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
-          {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
+          {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>� Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
           <span className="auth-badge authenticated" style={{marginLeft:'20px'}}>✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-          <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px',background:'#48bb78'}}>Logout</button>
+          <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px',background:'#48bb78'}}>🚪 Logout</button>
         </nav>
       </header>
       <main>
