@@ -4,6 +4,7 @@ import { initAnalytics, trackPageView, trackEvent, trackUserInteraction } from '
 import Login from './Login'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import { DEFAULT_GST, GST_PERCENT, fmt1, formatCurrency, PAYMENT_MODES, PAYMENT_MODE_LABELS, validateSplitPayment } from './constants'
 
 // 26:07 Electronics - Inventory Management System
 const API = (path) => {
@@ -33,11 +34,11 @@ export default function App(){
   const [newCustomer, setNewCustomer] = useState({name:'', phone:'', address:'', gstin:''})
   const [loading, setLoading] = useState(true)
   const [discount, setDiscount] = useState(0)
-  const [paymentMode, setPaymentMode] = useState('Cash')
+  const [paymentMode, setPaymentMode] = useState(PAYMENT_MODES.CASH)
   const [showBill, setShowBill] = useState(false)
   const [lastBill, setLastBill] = useState(null)
   const [searchQuery, setSearchQuery] = useState('') // Product search in POS
-  const [taxRate, setTaxRate] = useState(18) // GST rate
+  const [taxRate, setTaxRate] = useState(GST_PERCENT) // Fixed 18% GST
   const [companyInfo, setCompanyInfo] = useState({
     name: '26:07 Electronics',
     address: 'Electronics Plaza, Tech Street, City - 560001',
@@ -1304,8 +1305,8 @@ export default function App(){
     const tableData = items.map(item => [
       item.productName || item.name || 'Unknown',
       item.quantity || 0,
-      `₹${(item.unitPrice || item.price || 0).toFixed(2)}`,
-      `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(2)}`
+      `₹${(item.unitPrice || item.price || 0).toFixed(1)}`,
+      `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(1)}`
     ]);
     
     doc.autoTable({
@@ -1318,12 +1319,12 @@ export default function App(){
     const finalY = doc.lastAutoTable.finalY + 10;
     
     // Totals
-    doc.text(`Subtotal: ₹${(invoice.subtotal || 0).toFixed(2)}`, 150, finalY);
-    doc.text(`Discount (${invoice.discountPercent || 0}%): -₹${(invoice.discountAmount || 0).toFixed(2)}`, 150, finalY + 7);
-    doc.text(`GST (${invoice.taxRate || 0}%): ₹${(invoice.taxAmount || 0).toFixed(2)}`, 150, finalY + 14);
+    doc.text(`Subtotal: ${formatCurrency(invoice.subtotal || 0)}`, 150, finalY);
+    doc.text(`Discount (${invoice.discountPercent || 0}%): -${formatCurrency(invoice.discountAmount || 0)}`, 150, finalY + 7);
+    doc.text(`GST (18%): ${formatCurrency(invoice.taxAmount || 0)}`, 150, finalY + 14);
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text(`Grand Total: ₹${(invoice.total || 0).toFixed(2)}`, 150, finalY + 24);
+    doc.text(`Grand Total: ${formatCurrency(invoice.total || 0)}`, 150, finalY + 24);
     
     doc.save(`Invoice-${invoice.id}.pdf`);
     showNotification('✅ Invoice PDF downloaded!', 'success');
@@ -1341,7 +1342,7 @@ export default function App(){
       index + 1,
       p.name,
       p.quantity,
-      `₹${p.price.toFixed(2)}`,
+      `₹${p.price.toFixed(1)}`,
       p.quantity === 0 ? 'Out of Stock' : p.quantity < 10 ? 'Low Stock' : 'In Stock'
     ]);
     
@@ -1367,7 +1368,7 @@ export default function App(){
     const tableData = getFilteredInvoices().map(inv => [
       `#${inv.id}`,
       inv.customer_name || 'Walk-in',
-      `₹${(inv.total || 0).toFixed(2)}`,
+      `₹${(inv.total || 0).toFixed(1)}`,
       inv.paymentMode || 'Cash',
       new Date(inv.created_at).toLocaleDateString()
     ]);
@@ -1383,7 +1384,7 @@ export default function App(){
     const total = getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0);
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text(`Total Revenue: ₹${total.toFixed(2)}`, 150, finalY);
+    doc.text(`Total Revenue: ₹${total.toFixed(1)}`, 150, finalY);
     
     doc.save('Transactions-Report.pdf');
     showNotification('✅ Transactions PDF downloaded!', 'success');
@@ -1539,9 +1540,9 @@ export default function App(){
       new Date(inv.created_at || inv.date).toLocaleDateString(),
       inv.customer_name || inv.customerName || 'Walk-in',
       (inv.items?.length || 0).toString(),
-      `₹${(inv.total || inv.grandTotal || 0).toFixed(2)}`,
+      `₹${(inv.total || inv.grandTotal || 0).toFixed(1)}`,
       inv.paymentMode || 'Cash',
-      `₹${(inv.totalProfit || 0).toFixed(2)}`
+      `₹${(inv.totalProfit || 0).toFixed(1)}`
     ]);
     
     doc.autoTable({
@@ -1560,8 +1561,8 @@ export default function App(){
     
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, finalY);
-    doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, finalY + 8);
+    doc.text(`Total Revenue: ₹${totalRevenue.toFixed(1)}`, 20, finalY);
+    doc.text(`Total Profit: ₹${totalProfit.toFixed(1)}`, 20, finalY + 8);
     
     doc.save(`Sales-Report-${new Date().toISOString().split('T')[0]}.pdf`);
     showNotification('✅ Sales Report PDF downloaded!', 'success');
@@ -1582,9 +1583,9 @@ export default function App(){
       (index + 1).toString(),
       prod.name,
       prod.quantity.toString(),
-      `₹${prod.price.toFixed(2)}`,
-      `₹${(prod.costPrice || 0).toFixed(2)}`,
-      `₹${(prod.price - (prod.costPrice || 0)).toFixed(2)}`,
+      `₹${prod.price.toFixed(1)}`,
+      `₹${(prod.costPrice || 0).toFixed(1)}`,
+      `₹${(prod.price - (prod.costPrice || 0)).toFixed(1)}`,
       prod.hsnCode || 'N/A',
       prod.quantity === 0 ? 'Out of Stock' : prod.quantity < 10 ? 'Low Stock' : 'In Stock'
     ]);
@@ -1656,14 +1657,14 @@ export default function App(){
     // Calculate metrics
     const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
     const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
-    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
-    const avgProfitPerSale = invoices.length > 0 ? (totalProfit / invoices.length).toFixed(2) : 0;
+    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+    const avgProfitPerSale = invoices.length > 0 ? (totalProfit / invoices.length).toFixed(1) : 0;
     const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
     
     // Table data
     const tableData = [
-      ['Total Revenue', `₹${totalRevenue.toFixed(2)}`],
-      ['Total Profit', `₹${totalProfit.toFixed(2)}`],
+      ['Total Revenue', `₹${totalRevenue.toFixed(1)}`],
+      ['Total Profit', `₹${totalProfit.toFixed(1)}`],
       ['Profit Margin', `${profitMargin}%`],
       ['Total Invoices', invoices.length.toString()],
       ['Average Profit/Sale', `₹${avgProfitPerSale}`],
@@ -1778,44 +1779,35 @@ export default function App(){
       const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
       const discountAmount = subtotal * discount / 100;
       const afterDiscount = subtotal - discountAmount;
-      const taxAmount = afterDiscount * (taxRate / 100);
+      const taxAmount = afterDiscount * DEFAULT_GST; // Always 18%
       const grandTotal = afterDiscount + taxAmount;
       
-      // Validate split payment amounts if enabled
-      let paymentDetails = { mode: paymentMode };
+      // Validate split payment if enabled
       if (splitPayment) {
-        const cash = parseFloat(cashAmount) || 0;
-        const upi = parseFloat(upiAmount) || 0;
-        const card = parseFloat(cardAmount) || 0;
-        const totalPaid = cash + upi + card;
-        
-        if (Math.abs(totalPaid - grandTotal) > 0.01) {
-          showNotification(`❌ Payment total (₹${totalPaid.toFixed(2)}) doesn't match grand total (₹${grandTotal.toFixed(2)})`, 'error');
+        const validation = validateSplitPayment(cashAmount, upiAmount, cardAmount, grandTotal);
+        if (!validation.valid) {
+          showNotification(`❌ ${validation.error}`, 'error');
           setCheckoutLoading(false);
           return;
         }
-        
-        paymentDetails = {
-          mode: 'Split',
-          cash: cash,
-          upi: upi,
-          card: card
-        };
       }
       
       const payload = { 
         customerId: selectedCustomer?.id || null, 
         total: grandTotal,
+        totalAmount: grandTotal,
         subtotal: subtotal,
         discountAmount: discountAmount,
         discountValue: discount,
-        taxRate: taxRate,
+        taxRate: GST_PERCENT,
         taxAmount: taxAmount,
         items: cart,
         discountPercent: discount,
         customerState: 'Same',
-        paymentMode: splitPayment ? 'Split' : paymentMode,
-        paymentDetails: paymentDetails,
+        paymentMode: splitPayment ? PAYMENT_MODES.SPLIT : paymentMode,
+        cashAmount: splitPayment ? (parseFloat(cashAmount) || 0) : 0,
+        upiAmount: splitPayment ? (parseFloat(upiAmount) || 0) : 0,
+        cardAmount: splitPayment ? (parseFloat(cardAmount) || 0) : 0,
         userId: currentUser?.id || null,
         username: isAdmin ? 'admin' : currentUser?.username
       }
@@ -1850,13 +1842,13 @@ export default function App(){
           showNotification(`✓ Sale completed! Bill #${j.billId}`, 'success');
           
           // Track activity
-          addActivity('Sale Completed', `Bill #${j.billId} - ₹${grandTotal.toFixed(2)}`);
+          addActivity('Sale Completed', `Bill #${j.billId} - ₹${fmt1(grandTotal)}`);
           
           // Clear cart and reset form
           setCart([]); 
           setSelectedCustomer(null);
           setDiscount(0);
-          setPaymentMode('Cash');
+          setPaymentMode(PAYMENT_MODES.CASH);
           setSearchQuery('');
           setSplitPayment(false);
           setCashAmount('');
@@ -1907,7 +1899,7 @@ export default function App(){
           showNotification(`📴 Sale saved offline! Will sync when connected.`, 'warning');
           
           // Track activity
-          addActivity('Sale Completed (Offline)', `Bill #${offlineId} - ₹${grandTotal.toFixed(2)}`);
+          addActivity('Sale Completed (Offline)', `Bill #${offlineId} - ₹${grandTotal.toFixed(1)}`);
           
           // Clear cart and reset form
           setCart([]); 
@@ -2152,8 +2144,8 @@ export default function App(){
                       <td>${item.name}</td>
                       <td>${product?.hsnCode || 'N/A'}</td>
                       <td class="text-center">${item.quantity}</td>
-                      <td class="text-right">₹${item.price.toFixed(2)}</td>
-                      <td class="text-right">₹${(item.price * item.quantity).toFixed(2)}</td>
+                      <td class="text-right">₹${item.price.toFixed(1)}</td>
+                      <td class="text-right">₹${(item.price * item.quantity).toFixed(1)}</td>
                     </tr>
                   `;
                 }).join('')}
@@ -2165,25 +2157,25 @@ export default function App(){
               <table class="totals-table">
                 <tr>
                   <td>Subtotal:</td>
-                  <td class="text-right">₹${subtotal.toFixed(2)}</td>
+                  <td class="text-right">₹${subtotal.toFixed(1)}</td>
                 </tr>
                 ${discountPercent > 0 ? `
                   <tr>
                     <td>Discount (${discountPercent}%):</td>
-                    <td class="text-right">- ₹${discountAmount.toFixed(2)}</td>
+                    <td class="text-right">- ₹${discountAmount.toFixed(1)}</td>
                   </tr>
                   <tr>
                     <td>After Discount:</td>
-                    <td class="text-right">₹${afterDiscount.toFixed(2)}</td>
+                    <td class="text-right">₹${afterDiscount.toFixed(1)}</td>
                   </tr>
                 ` : ''}
                 <tr>
                   <td>GST (${taxRate}%):</td>
-                  <td class="text-right">₹${taxAmount.toFixed(2)}</td>
+                  <td class="text-right">₹${taxAmount.toFixed(1)}</td>
                 </tr>
                 <tr class="grand-total">
                   <td><strong>GRAND TOTAL:</strong></td>
-                  <td class="text-right"><strong>₹${grandTotal.toFixed(2)}</strong></td>
+                  <td class="text-right"><strong>₹${grandTotal.toFixed(1)}</strong></td>
                 </tr>
               </table>
             </div>
@@ -2736,7 +2728,7 @@ export default function App(){
           <div class="barcode-container">
             <h2>${barcodeProduct?.name}</h2>
             <img src="${barcodeImage}" alt="Barcode" />
-            <div class="price">₹${barcodeProduct?.price?.toFixed(2)}</div>
+            <div class="price">₹${barcodeProduct?.price?.toFixed(1)}</div>
           </div>
           <button class="no-print" onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">
             Print
@@ -3663,7 +3655,7 @@ export default function App(){
                       >
                         🗑️
                       </button>
-                      <span style={{minWidth:'70px', textAlign:'right', fontWeight:'bold'}}>₹{(it.price*it.quantity).toFixed(2)}</span>
+                      <span style={{minWidth:'70px', textAlign:'right', fontWeight:'bold'}}>₹{(it.price*it.quantity).toFixed(1)}</span>
                     </div>
                   </li>
                 ))}
@@ -3692,20 +3684,18 @@ export default function App(){
               {/* Payment Mode */}
               <div className="form-group">
                 <label>Payment Mode:</label>
-                <select value={splitPayment ? 'Split' : paymentMode} onChange={(e)=>{
-                  if (e.target.value === 'Split') {
+                <select value={splitPayment ? PAYMENT_MODES.SPLIT : paymentMode} onChange={(e)=>{
+                  if (e.target.value === PAYMENT_MODES.SPLIT) {
                     setSplitPayment(true);
                   } else {
                     setSplitPayment(false);
                     setPaymentMode(e.target.value);
                   }
                 }}>
-                  <option value="Cash">💵 Cash</option>
-                  <option value="Card">💳 Card</option>
-                  <option value="UPI">📱 UPI</option>
-                  <option value="Net Banking">🏦 Net Banking</option>
-                  <option value="Cheque">📝 Cheque</option>
-                  <option value="Split">💰 Split Payment</option>
+                  <option value={PAYMENT_MODES.CASH}>💵 Cash</option>
+                  <option value={PAYMENT_MODES.CARD}>💳 Card</option>
+                  <option value={PAYMENT_MODES.UPI}>📱 UPI</option>
+                  <option value={PAYMENT_MODES.SPLIT}>💰 Split Payment</option>
                 </select>
               </div>
 
@@ -3714,57 +3704,82 @@ export default function App(){
                 const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
                 const discountAmount = subtotal * discount / 100;
                 const afterDiscount = subtotal - discountAmount;
-                const taxAmount = afterDiscount * (taxRate / 100);
+                const taxAmount = afterDiscount * DEFAULT_GST;
                 const grandTotal = afterDiscount + taxAmount;
                 const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(upiAmount) || 0) + (parseFloat(cardAmount) || 0);
                 const remaining = grandTotal - totalPaid;
+                const isValid = Math.abs(remaining) <= 0.01;
                 
                 return (
-                  <div style={{marginBottom: '15px', padding: '15px', background: '#f7fafc', borderRadius: '8px'}}>
-                    <div style={{marginBottom: '10px', fontWeight: '600', color: '#2d3748'}}>
-                      Split Payment - Total: ₹{grandTotal.toFixed(2)}
+                  <div style={{marginBottom: '15px', padding: '15px', background: '#f7fafc', borderRadius: '8px', border: isValid ? '2px solid #48bb78' : '2px solid #fc8181'}}>
+                    <div style={{marginBottom: '10px', fontWeight: '600', color: '#2d3748', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <span>Split Payment - Total: {formatCurrency(grandTotal)}</span>
+                      <button 
+                        onClick={() => {
+                          setCashAmount(grandTotal.toFixed(1));
+                          setUpiAmount('0');
+                          setCardAmount('0');
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          background: '#4299e1',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        💵 Full Cash
+                      </button>
                     </div>
-                    <div className="form-group" style={{marginBottom: '10px'}}>
-                      <label>💵 Cash Amount:</label>
-                      <input 
-                        type="number" 
-                        value={cashAmount} 
-                        onChange={(e)=>setCashAmount(e.target.value)}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="form-group" style={{marginBottom: '10px'}}>
-                      <label>📱 UPI Amount:</label>
-                      <input 
-                        type="number" 
-                        value={upiAmount} 
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px'}}>
+                      <div className="form-group" style={{marginBottom: '0'}}>
+                        <label style={{fontSize: '13px'}}>💵 Cash</label>
+                        <input 
+                          type="number" 
+                          value={cashAmount} 
+                          onChange={(e)=>setCashAmount(e.target.value)}
+                          min="0"
+                          step="0.1"
+                          placeholder="0.0"
+                          style={{textAlign: 'right', fontWeight: 'bold'}}
+                        />
+                      </div>
+                      <div className="form-group" style={{marginBottom: '0'}}>
+                        <label style={{fontSize: '13px'}}>📱 UPI</label>
+                        <input 
+                          type="number" 
+                          value={upiAmount} 
                         onChange={(e)=>setUpiAmount(e.target.value)}
                         min="0"
-                        step="0.01"
-                        placeholder="0.00"
+                        step="0.1"
+                        placeholder="0.0"
+                        style={{textAlign: 'right', fontWeight: 'bold'}}
                       />
                     </div>
-                    <div className="form-group" style={{marginBottom: '10px'}}>
-                      <label>💳 Card Amount:</label>
+                    <div className="form-group" style={{marginBottom: '0'}}>
+                      <label style={{fontSize: '13px'}}>💳 Card</label>
                       <input 
                         type="number" 
                         value={cardAmount} 
                         onChange={(e)=>setCardAmount(e.target.value)}
                         min="0"
-                        step="0.01"
-                        placeholder="0.00"
+                        step="0.1"
+                        placeholder="0.0"
+                        style={{textAlign: 'right', fontWeight: 'bold'}}
                       />
+                    </div>
                     </div>
                     <div style={{
                       padding: '10px',
-                      background: remaining === 0 ? '#c6f6d5' : remaining > 0 ? '#fff5f5' : '#bee3f8',
+                      background: isValid ? '#c6f6d5' : '#fff5f5',
                       borderRadius: '5px',
                       fontWeight: '600',
-                      color: remaining === 0 ? '#2f855a' : remaining > 0 ? '#c53030' : '#2c5282'
+                      color: isValid ? '#2f855a' : '#c53030',
+                      fontSize: '14px'
                     }}>
-                      {remaining === 0 ? '✓ Exact Amount' : remaining > 0 ? `⚠️ Remaining: ₹${remaining.toFixed(2)}` : `⚠️ Excess: ₹${Math.abs(remaining).toFixed(2)}`}
+                      {isValid ? '✓ Exact Amount' : `⚠️ ${remaining > 0 ? 'Remaining' : 'Excess'}: ${formatCurrency(Math.abs(remaining))}`}
                     </div>
                   </div>
                 );
@@ -3775,36 +3790,49 @@ export default function App(){
                 const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
                 const discountAmount = subtotal * discount / 100;
                 const afterDiscount = subtotal - discountAmount;
-                const taxAmount = afterDiscount * (taxRate / 100);
+                const taxAmount = afterDiscount * DEFAULT_GST;
                 const grandTotal = afterDiscount + taxAmount;
                 
                 return (
                   <div className="bill-breakdown">
-                    <div className="breakdown-row"><span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span></div>
+                    <div className="breakdown-row"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
                     {discount > 0 && (
                       <>
-                        <div className="breakdown-row"><span>Discount ({discount}%):</span><span style={{color: '#48bb78'}}>-₹{discountAmount.toFixed(2)}</span></div>
-                        <div className="breakdown-row"><span>After Discount:</span><span>₹{afterDiscount.toFixed(2)}</span></div>
+                        <div className="breakdown-row"><span>Discount ({discount}%):</span><span style={{color: '#48bb78'}}>-{formatCurrency(discountAmount)}</span></div>
+                        <div className="breakdown-row"><span>After Discount:</span><span>{formatCurrency(afterDiscount)}</span></div>
                       </>
                     )}
-                    {taxRate > 0 && <div className="breakdown-row"><span>GST ({taxRate}%):</span><span>₹{taxAmount.toFixed(2)}</span></div>}
+                    <div className="breakdown-row"><span>GST (18%):</span><span>{formatCurrency(taxAmount)}</span></div>
                   </div>
                 );
               })()}
               
               <div className="total">
-                Grand Total: ₹{cart.length > 0 ? (() => {
+                Grand Total: {cart.length > 0 ? (() => {
                   const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
                   const discountAmount = (subtotal * discount / 100);
                   const afterDiscount = subtotal - discountAmount;
-              const taxAmount = afterDiscount * (taxRate / 100);
-              return (afterDiscount + taxAmount).toFixed(2);
-            })() : '0.00'}
+              const taxAmount = afterDiscount * DEFAULT_GST;
+              return formatCurrency(afterDiscount + taxAmount);
+            })() : '₹0.0'}
           </div>
           
           <button 
             onClick={() => requireAuth(checkout)} 
-            disabled={cart.length === 0 || !canMakeSales() || checkoutLoading} 
+            disabled={
+              cart.length === 0 || 
+              !canMakeSales() || 
+              checkoutLoading ||
+              (splitPayment && (() => {
+                const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
+                const discountAmount = subtotal * discount / 100;
+                const afterDiscount = subtotal - discountAmount;
+                const taxAmount = afterDiscount * DEFAULT_GST;
+                const grandTotal = afterDiscount + taxAmount;
+                const validation = validateSplitPayment(cashAmount, upiAmount, cardAmount, grandTotal);
+                return !validation.valid;
+              })())
+            } 
             className="btn-complete-sale"
           >
             {checkoutLoading ? (
@@ -4482,14 +4510,14 @@ export default function App(){
               <div className="stat-card">
                 <div className="stat-icon">💰</div>
                 <div className="stat-info">
-                  <h3>₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}</h3>
+                  <h3>₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(1)}</h3>
                   <p>Total Revenue</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">📈</div>
                 <div className="stat-info">
-                  <h3>₹{getFilteredInvoices().length > 0 ? (getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0) / getFilteredInvoices().length).toFixed(2) : 0}</h3>
+                  <h3>₹{getFilteredInvoices().length > 0 ? (getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0) / getFilteredInvoices().length).toFixed(1) : 0}</h3>
                   <p>Average Sale</p>
                 </div>
               </div>
@@ -4526,22 +4554,22 @@ export default function App(){
                         <td>{new Date(inv.created_at || inv.date).toLocaleDateString()}</td>
                         <td>{inv.customer_name || inv.customerName || 'Walk-in'}</td>
                         <td>{inv.items?.length || 0} items</td>
-                        <td>₹{(inv.subtotal || 0).toFixed(2)}</td>
+                        <td>₹{(inv.subtotal || 0).toFixed(1)}</td>
                         <td>
                           <span style={{color:'#e74c3c',fontSize:'13px'}}>
                             -{inv.discountPercent || 0}%
                             <br/>
-                            <small style={{color:'#888'}}>₹{(inv.discountAmount || 0).toFixed(2)}</small>
+                            <small style={{color:'#888'}}>₹{(inv.discountAmount || 0).toFixed(1)}</small>
                           </span>
                         </td>
                         <td>
                           <span style={{color:'#27ae60',fontSize:'13px'}}>
                             +{inv.taxRate || 0}%
                             <br/>
-                            <small style={{color:'#888'}}>₹{(inv.taxAmount || 0).toFixed(2)}</small>
+                            <small style={{color:'#888'}}>₹{(inv.taxAmount || 0).toFixed(1)}</small>
                           </span>
                         </td>
-                        <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(2)}</strong></td>
+                        <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(1)}</strong></td>
                         <td>
                           <span className={`badge ${
                             inv.paymentMode === 'Cash' ? 'success' : 
@@ -5000,13 +5028,13 @@ export default function App(){
                 </div>
                 <div style={{textAlign: 'center', padding: '10px', background: 'white', borderRadius: '8px', flex: 1}}>
                   <div style={{fontSize: '24px', fontWeight: 'bold', color: '#48bb78'}}>
-                    ₹{customerPurchases.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0).toFixed(2)}
+                    ₹{customerPurchases.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0).toFixed(1)}
                   </div>
                   <div style={{fontSize: '12px', color: '#666'}}>Total Spent</div>
                 </div>
                 <div style={{textAlign: 'center', padding: '10px', background: 'white', borderRadius: '8px', flex: 1}}>
                   <div style={{fontSize: '24px', fontWeight: 'bold', color: '#f6ad55'}}>
-                    ₹{customerPurchases.length > 0 ? (customerPurchases.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0) / customerPurchases.length).toFixed(2) : '0.00'}
+                    ₹{customerPurchases.length > 0 ? (customerPurchases.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0) / customerPurchases.length).toFixed(1) : '0.00'}
                   </div>
                   <div style={{fontSize: '12px', color: '#666'}}>Avg Purchase</div>
                 </div>
@@ -5094,24 +5122,24 @@ export default function App(){
                       <td>{item.productName || item.name}</td>
                       <td style={{textAlign:'center'}}>{item.quantity}</td>
                       <td style={{textAlign:'right'}}>₹{item.unitPrice || item.price}</td>
-                      <td style={{textAlign:'right'}}>₹{((item.unitPrice || item.price) * item.quantity).toFixed(2)}</td>
+                      <td style={{textAlign:'right'}}>₹{((item.unitPrice || item.price) * item.quantity).toFixed(1)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
               <div className="bill-summary">
-                <div><span>Subtotal:</span><span>₹{lastBill.subtotal.toFixed(2)}</span></div>
+                <div><span>Subtotal:</span><span>₹{lastBill.subtotal.toFixed(1)}</span></div>
                 {lastBill.discountAmount > 0 && (
                   <>
-                    <div><span>Discount ({lastBill.discountPercent || lastBill.discountValue}%):</span><span>-₹{lastBill.discountAmount.toFixed(2)}</span></div>
-                    <div><span>After Discount:</span><span>₹{(lastBill.subtotal - lastBill.discountAmount).toFixed(2)}</span></div>
+                    <div><span>Discount ({lastBill.discountPercent || lastBill.discountValue}%):</span><span>-₹{lastBill.discountAmount.toFixed(1)}</span></div>
+                    <div><span>After Discount:</span><span>₹{(lastBill.subtotal - lastBill.discountAmount).toFixed(1)}</span></div>
                   </>
                 )}
-                <div><span>GST ({lastBill.taxRate}%):</span><span>₹{lastBill.taxAmount.toFixed(2)}</span></div>
+                <div><span>GST ({lastBill.taxRate}%):</span><span>₹{lastBill.taxAmount.toFixed(1)}</span></div>
                 <div className="grand-total">
                   <span><strong>Grand Total:</strong></span>
-                  <span><strong>₹{lastBill.total.toFixed(2)}</strong></span>
+                  <span><strong>₹{lastBill.total.toFixed(1)}</strong></span>
                 </div>
               </div>
 
@@ -5183,7 +5211,7 @@ export default function App(){
               textAlign: 'center'
             }}>
               <h3 style={{margin: '0 0 8px 0', fontSize: '24px'}}>{barcodeProduct.name}</h3>
-              <div style={{fontSize: '32px', fontWeight: 'bold'}}>₹{barcodeProduct.price?.toFixed(2)}</div>
+              <div style={{fontSize: '32px', fontWeight: 'bold'}}>₹{barcodeProduct.price?.toFixed(1)}</div>
             </div>
 
             <div style={{
@@ -5268,8 +5296,8 @@ export default function App(){
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px'}}>
                 <div><strong>Product ID:</strong> {barcodeProduct.id}</div>
                 <div><strong>Stock:</strong> {barcodeProduct.quantity} units</div>
-                <div><strong>Cost Price:</strong> ₹{barcodeProduct.costPrice?.toFixed(2)}</div>
-                <div><strong>Selling Price:</strong> ₹{barcodeProduct.price?.toFixed(2)}</div>
+                <div><strong>Cost Price:</strong> ₹{barcodeProduct.costPrice?.toFixed(1)}</div>
+                <div><strong>Selling Price:</strong> ₹{barcodeProduct.price?.toFixed(1)}</div>
               </div>
             </div>
 

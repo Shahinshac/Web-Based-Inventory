@@ -163,8 +163,34 @@ function validateCheckout(data) {
     errors.push('Total must be a non-negative number');
   }
   
-  if (data.paymentMode && !['Cash', 'Card', 'UPI', 'Net Banking'].includes(data.paymentMode)) {
-    errors.push('Invalid payment mode');
+  // Validate payment mode (accept lowercase: cash, upi, card, split)
+  const validPaymentModes = ['cash', 'upi', 'card', 'split', 'Cash', 'UPI', 'Card', 'Split'];
+  if (data.paymentMode && !validPaymentModes.includes(data.paymentMode)) {
+    errors.push('Invalid payment mode. Must be: cash, upi, card, or split');
+  }
+  
+  // Validate split payment details
+  if (data.paymentMode === 'split' || data.paymentMode === 'Split') {
+    const cashAmount = parseFloat(data.cashAmount) || 0;
+    const upiAmount = parseFloat(data.upiAmount) || 0;
+    const cardAmount = parseFloat(data.cardAmount) || 0;
+    const totalAmount = parseFloat(data.totalAmount) || parseFloat(data.total) || 0;
+    
+    // All amounts must be >= 0
+    if (cashAmount < 0 || upiAmount < 0 || cardAmount < 0) {
+      errors.push('Split payment amounts cannot be negative');
+    }
+    
+    // At least one must be > 0
+    if (cashAmount === 0 && upiAmount === 0 && cardAmount === 0) {
+      errors.push('At least one payment method must be used in split payment');
+    }
+    
+    // Sum must match total (with 0.01 tolerance)
+    const sum = cashAmount + upiAmount + cardAmount;
+    if (totalAmount > 0 && Math.abs(sum - totalAmount) > 0.01) {
+      errors.push(`Split payment sum (${sum.toFixed(2)}) must match total (${totalAmount.toFixed(2)})`);
+    }
   }
   
   return errors;

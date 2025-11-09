@@ -340,7 +340,21 @@ app.post('/api/checkout', async (req, res) => {
     const customerId = payload.customerId || null;
     const discountPercent = parseFloat(payload.discountPercent) || 0;
     const customerState = payload.customerState || 'Same'; // 'Same' or 'Other'
-    const paymentMode = sanitizeString(payload.paymentMode || 'Cash');
+    
+    // Normalize payment mode to lowercase
+    let paymentMode = (payload.paymentMode || 'cash').toLowerCase();
+    
+    // Handle split payment details
+    let splitPaymentDetails = null;
+    if (paymentMode === 'split') {
+      splitPaymentDetails = {
+        cashAmount: parseFloat(payload.cashAmount) || 0,
+        upiAmount: parseFloat(payload.upiAmount) || 0,
+        cardAmount: parseFloat(payload.cardAmount) || 0,
+        totalAmount: parseFloat(payload.totalAmount) || parseFloat(payload.total) || 0
+      };
+    }
+    
     const userId = payload.userId || null;
     const username = sanitizeString(payload.username || 'Unknown');
     const db = getDB();
@@ -385,6 +399,11 @@ app.post('/api/checkout', async (req, res) => {
       createdBy: userId,
       createdByUsername: username
     };
+    
+    // Add split payment details if applicable
+    if (splitPaymentDetails) {
+      bill.splitPaymentDetails = splitPaymentDetails;
+    }
 
     // Process items and update inventory
     for (const it of items) {
