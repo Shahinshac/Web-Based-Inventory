@@ -2791,6 +2791,11 @@ export default function App(){
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-20px); }
           }
+
+          /* Chart tooltip hover effect */
+          .chart-bar:hover .chart-tooltip {
+            opacity: 1 !important;
+          }
         `}</style>
       </div>
     )
@@ -3255,6 +3260,86 @@ export default function App(){
                   <p>Today's Profit</p>
                 </div>
               </div>
+            </div>
+
+            {/* Sales Trend Graph - Demo */}
+            <div className="card" style={{marginBottom:'30px',padding:'30px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+                <h3>📈 Sales Trend (Last 7 Days)</h3>
+                <span style={{fontSize:'12px',color:'#999'}}>Demo Chart</span>
+              </div>
+              <div style={{
+                display:'flex',
+                alignItems:'flex-end',
+                gap:'20px',
+                height:'200px',
+                borderBottom:'2px solid #e2e8f0',
+                borderLeft:'2px solid #e2e8f0',
+                padding:'20px',
+                background:'#f8fafc',
+                borderRadius:'12px'
+              }}>
+                {[
+                  {day: 'Mon', value: 65, color: '#667eea'},
+                  {day: 'Tue', value: 45, color: '#764ba2'},
+                  {day: 'Wed', value: 80, color: '#f093fb'},
+                  {day: 'Thu', value: 55, color: '#4facfe'},
+                  {day: 'Fri', value: 90, color: '#00f2fe'},
+                  {day: 'Sat', value: 70, color: '#43e97b'},
+                  {day: 'Sun', value: 60, color: '#38f9d7'}
+                ].map((item, index) => (
+                  <div key={index} style={{
+                    flex:1,
+                    display:'flex',
+                    flexDirection:'column',
+                    alignItems:'center',
+                    gap:'10px'
+                  }}>
+                    <div className="chart-bar" style={{
+                      width:'100%',
+                      height:`${item.value}%`,
+                      background:`linear-gradient(180deg, ${item.color} 0%, ${item.color}88 100%)`,
+                      borderRadius:'8px 8px 0 0',
+                      transition:'all 0.3s ease',
+                      cursor:'pointer',
+                      position:'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    >
+                      <div style={{
+                        position:'absolute',
+                        top:'-25px',
+                        left:'50%',
+                        transform:'translateX(-50%)',
+                        background:'rgba(0,0,0,0.8)',
+                        color:'white',
+                        padding:'4px 8px',
+                        borderRadius:'6px',
+                        fontSize:'11px',
+                        fontWeight:'bold',
+                        opacity:0,
+                        pointerEvents:'none',
+                        transition:'opacity 0.2s'
+                      }}
+                      className="chart-tooltip"
+                      >
+                        ₹{item.value}k
+                      </div>
+                    </div>
+                    <span style={{fontSize:'12px',fontWeight:'600',color:'#64748b'}}>{item.day}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{textAlign:'center',marginTop:'15px',color:'#94a3b8',fontSize:'13px'}}>
+                💡 This is a demo visualization. Real sales data will be displayed here once you have transactions.
+              </p>
             </div>
 
             <div className="recent-section">
@@ -4227,63 +4312,136 @@ export default function App(){
           </div>
         )}
 
-        {/* Backup & Restore Tab */}
-        {tab==='backup' && (
+        {/* Invoices Tab */}
+        {tab==='invoices' && (
           <div>
-            <h2>💾 Backup & Restore</h2>
-            <p style={{color:'#666',marginBottom:'30px'}}>
-              Securely backup and restore your entire inventory database
-            </p>
-
-            {/* Backup Section */}
-            <div className="card" style={{marginBottom: '30px', padding: '30px'}}>
-              <h3 style={{marginBottom: '15px'}}>📤 Create Backup</h3>
-              <p style={{color: '#666', marginBottom: '20px'}}>
-                Download a complete backup of all products, customers, transactions, and expenses.
-              </p>
-              <button onClick={downloadBackup} className="btn-primary" style={{padding: '12px 24px'}}>
-                💾 Download Backup (JSON)
-              </button>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+              <h2>🧾 Invoices</h2>
+              <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+                <select 
+                  value={invoiceDateFilter} 
+                  onChange={(e) => setInvoiceDateFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '2px solid #e2e8f0',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {invoiceDateFilter === 'custom' && (
+                  <>
+                    <input 
+                      type="date" 
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '2px solid #e2e8f0',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <span>to</span>
+                    <input 
+                      type="date" 
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '2px solid #e2e8f0',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Restore Section */}
-            <div className="card" style={{padding: '30px'}}>
-              <h3 style={{marginBottom: '15px'}}>📥 Restore from Backup</h3>
-              <p style={{color: '#666', marginBottom: '20px'}}>
-                Restore data from a previously downloaded backup file. This will replace current data.
-              </p>
-              <input 
-                type="file" 
-                accept=".json"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) restoreBackup(file);
-                }}
-                style={{
-                  padding: '10px',
-                  border: '2px dashed #ddd',
-                  borderRadius: '8px',
-                  width: '100%',
-                  cursor: 'pointer'
-                }}
-              />
+            {/* Summary Cards */}
+            <div className="stats-grid" style={{marginBottom:'30px'}}>
+              <div className="stat-card">
+                <div className="stat-icon">�</div>
+                <div className="stat-info">
+                  <h3>{getFilteredInvoices().length}</h3>
+                  <p>Total Invoices</p>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon">💰</div>
+                <div className="stat-info">
+                  <h3>₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}</h3>
+                  <p>Total Revenue</p>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon">📈</div>
+                <div className="stat-info">
+                  <h3>₹{getFilteredInvoices().length > 0 ? (getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0) / getFilteredInvoices().length).toFixed(2) : 0}</h3>
+                  <p>Average Sale</p>
+                </div>
+              </div>
             </div>
 
-            {/* Warning Section */}
-            <div style={{
-              marginTop: '30px',
-              padding: '20px',
-              background: '#fff3cd',
-              border: '1px solid #ffc107',
-              borderRadius: '8px'
-            }}>
-              <h4 style={{marginBottom: '10px', color: '#856404'}}>⚠️ Important Notes</h4>
-              <ul style={{color: '#856404', paddingLeft: '20px'}}>
-                <li>Backups contain all your business data - store them securely</li>
-                <li>Restoring a backup will replace current data - create a backup first if needed</li>
-                <li>Regular backups are recommended (daily/weekly)</li>
-                <li>Keep multiple backup versions in different locations</li>
-              </ul>
+            {/* Invoices Table */}
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Payment</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getFilteredInvoices().length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{textAlign:'center',padding:'40px',color:'#999'}}>
+                        No invoices found for selected period
+                      </td>
+                    </tr>
+                  ) : (
+                    getFilteredInvoices().reverse().map(inv => (
+                      <tr key={inv.id || inv._id}>
+                        <td><strong>#{inv.id || inv.billNumber}</strong></td>
+                        <td>{new Date(inv.created_at || inv.date).toLocaleDateString()}</td>
+                        <td>{inv.customer_name || inv.customerName || 'Walk-in'}</td>
+                        <td>{inv.items?.length || 0} items</td>
+                        <td>
+                          <span className={`badge ${
+                            inv.paymentMode === 'Cash' ? 'success' : 
+                            inv.paymentMode === 'UPI' ? 'primary' : 
+                            'info'
+                          }`}>
+                            {inv.paymentMode || 'Cash'}
+                          </span>
+                        </td>
+                        <td><strong>₹{(inv.total || inv.grandTotal || 0).toFixed(2)}</strong></td>
+                        <td>
+                          <button 
+                            onClick={() => exportInvoiceToPDF(inv)}
+                            className="btn-sm btn-primary"
+                            style={{padding:'6px 12px',fontSize:'12px'}}
+                          >
+                            📄 PDF
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
