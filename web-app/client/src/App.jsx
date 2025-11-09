@@ -2190,7 +2190,27 @@ export default function App(){
       }
     } catch(e) {
       console.error('Add product error:', e)
-      showNotification('Failed to add product. Please check your connection and try again.', 'error');
+      
+      // Check if it's a network error (backend not available)
+      if (e.message === 'Failed to fetch' || !navigator.onLine) {
+        showNotification('⚠️ Backend server not connected. Please deploy your backend server first. See BACKEND_SETUP.md for instructions.', 'error');
+        
+        // Optionally save to local storage for later sync
+        const localProducts = JSON.parse(localStorage.getItem('pendingProducts') || '[]');
+        const pendingProduct = {
+          ...newProduct,
+          id: Date.now(),
+          userId: currentUser?.id || null,
+          username: isAdmin ? 'admin' : currentUser?.username,
+          createdAt: new Date().toISOString()
+        };
+        localProducts.push(pendingProduct);
+        localStorage.setItem('pendingProducts', JSON.stringify(localProducts));
+        
+        showNotification(`💾 Product saved locally. Will sync when backend is available. (${localProducts.length} pending)`, 'warning');
+      } else {
+        showNotification('Failed to add product. Please check your connection and try again.', 'error');
+      }
     }
   }
 
