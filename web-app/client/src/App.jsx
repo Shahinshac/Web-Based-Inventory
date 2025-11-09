@@ -1181,7 +1181,7 @@ export default function App(){
   // Check for low stock on load
   useEffect(() => {
     if (products.length > 0) {
-      const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity <= p.minStock)
+      const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity < 10)
       const outOfStockItems = products.filter(p => p.quantity === 0)
       
       if (lowStockItems.length > 0 || outOfStockItems.length > 0) {
@@ -1209,7 +1209,7 @@ export default function App(){
     // Apply filter
     switch(productFilter) {
       case 'low-stock':
-        filtered = filtered.filter(p => p.quantity > 0 && p.quantity <= p.minStock)
+        filtered = filtered.filter(p => p.quantity > 0 && p.quantity < 10)
         break
       case 'out-of-stock':
         filtered = filtered.filter(p => p.quantity === 0)
@@ -1342,7 +1342,7 @@ export default function App(){
       p.name,
       p.quantity,
       `₹${p.price.toFixed(2)}`,
-      p.quantity === 0 ? 'Out of Stock' : p.quantity <= p.minStock ? 'Low Stock' : 'In Stock'
+      p.quantity === 0 ? 'Out of Stock' : p.quantity < 10 ? 'Low Stock' : 'In Stock'
     ]);
     
     doc.autoTable({
@@ -1586,7 +1586,7 @@ export default function App(){
       `₹${(prod.costPrice || 0).toFixed(2)}`,
       `₹${(prod.price - (prod.costPrice || 0)).toFixed(2)}`,
       prod.hsnCode || 'N/A',
-      prod.quantity === 0 ? 'Out of Stock' : prod.quantity <= (prod.minStock || 10) ? 'Low Stock' : 'In Stock'
+      prod.quantity === 0 ? 'Out of Stock' : prod.quantity < 10 ? 'Low Stock' : 'In Stock'
     ]);
     
     doc.autoTable({
@@ -1600,7 +1600,7 @@ export default function App(){
     
     // Summary
     const finalY = doc.lastAutoTable.finalY + 10;
-    const lowStock = products.filter(p => p.quantity > 0 && p.quantity <= (p.minStock || 10)).length;
+    const lowStock = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
     const outOfStock = products.filter(p => p.quantity === 0).length;
     
     doc.setFontSize(11);
@@ -1658,7 +1658,7 @@ export default function App(){
     const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
     const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
     const avgProfitPerSale = invoices.length > 0 ? (totalProfit / invoices.length).toFixed(2) : 0;
-    const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity <= (p.minStock || 10)).length;
+    const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
     
     // Table data
     const tableData = [
@@ -3183,7 +3183,7 @@ export default function App(){
               📈 Reports
             </button>
             <button onClick={() => { 
-              const lowStock = products.filter(p => p.quantity <= p.minStock);
+              const lowStock = products.filter(p => p.quantity < 10);
               if (lowStock.length > 0) {
                 setProductFilter('low-stock');
                 setTab('products');
@@ -3214,12 +3214,12 @@ export default function App(){
                 ))}
               </div>
               
-              <h3 style={{color: '#f39c12', marginTop: '20px'}}>⚠️ Low Stock ({products.filter(p => p.quantity > 0 && p.quantity <= p.minStock).length})</h3>
+              <h3 style={{color: '#f39c12', marginTop: '20px'}}>⚠️ Low Stock ({products.filter(p => p.quantity > 0 && p.quantity < 10).length})</h3>
               <div className="alert-list">
-                {products.filter(p => p.quantity > 0 && p.quantity <= p.minStock).map(p => (
+                {products.filter(p => p.quantity > 0 && p.quantity < 10).map(p => (
                   <div key={p._id} className="alert-item low-stock">
                     <span className="alert-product">{p.name}</span>
-                    <span className="alert-quantity">{p.quantity} / {p.minStock}</span>
+                    <span className="alert-quantity">{p.quantity} / 10</span>
                   </div>
                 ))}
               </div>
@@ -3253,13 +3253,13 @@ export default function App(){
               </div>
               <div className="detail-row">
                 <span className="detail-label">Current Stock:</span>
-                <span className={`detail-value ${selectedProduct.quantity <= selectedProduct.minStock ? 'low-stock-text' : ''}`}>
+                <span className={`detail-value ${selectedProduct.quantity < 10 ? 'low-stock-text' : ''}`}>
                   {selectedProduct.quantity} units
                 </span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Minimum Stock:</span>
-                <span className="detail-value">{selectedProduct.minStock} units</span>
+                <span className="detail-value">10 units</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">GST Rate:</span>
@@ -3267,8 +3267,8 @@ export default function App(){
               </div>
               <div className="detail-row">
                 <span className="detail-label">Status:</span>
-                <span className={`detail-value ${selectedProduct.quantity === 0 ? 'out-of-stock-text' : selectedProduct.quantity <= selectedProduct.minStock ? 'low-stock-text' : 'in-stock-text'}`}>
-                  {selectedProduct.quantity === 0 ? '🔴 Out of Stock' : selectedProduct.quantity <= selectedProduct.minStock ? '🟡 Low Stock' : '🟢 In Stock'}
+                <span className={`detail-value ${selectedProduct.quantity === 0 ? 'out-of-stock-text' : selectedProduct.quantity < 10 ? 'low-stock-text' : 'in-stock-text'}`}>
+                  {selectedProduct.quantity === 0 ? '🔴 Out of Stock' : selectedProduct.quantity < 10 ? '🟡 Low Stock' : '🟢 In Stock'}
                 </span>
               </div>
             </div>
@@ -3551,7 +3551,7 @@ export default function App(){
                           OUT
                         </div>
                       )}
-                      {p.quantity > 0 && p.quantity < p.minStock && (
+                      {p.quantity > 0 && p.quantity < 10 && (
                         <div style={{
                           position: 'absolute',
                           top: '8px',
@@ -3830,7 +3830,7 @@ export default function App(){
                 <label>🔍 Filter:</label>
                 <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className="control-select">
                   <option value="all">All Products ({products.length})</option>
-                  <option value="low-stock">Low Stock ({products.filter(p => p.quantity > 0 && p.quantity <= p.minStock).length})</option>
+                  <option value="low-stock">Low Stock ({products.filter(p => p.quantity > 0 && p.quantity < 10).length})</option>
                   <option value="out-of-stock">Out of Stock ({products.filter(p => p.quantity === 0).length})</option>
                   <option value="high-profit">High Profit (≥30%) ({products.filter(p => p.profitPercent >= 30).length})</option>
                 </select>
@@ -3867,12 +3867,12 @@ export default function App(){
                         {prod.name}
                       </span>
                       {prod.quantity === 0 && <span className="badge out-of-stock">Out of Stock</span>}
-                      {prod.quantity > 0 && prod.quantity <= prod.minStock && <span className="badge low-stock">Low Stock</span>}
+                      {prod.quantity > 0 && prod.quantity < 10 && <span className="badge low-stock">Low Stock</span>}
                     </td>
                     <td>
                       <span style={{
                         fontWeight: 'bold',
-                        color: prod.quantity === 0 ? '#ef4444' : prod.quantity <= prod.minStock ? '#f59e0b' : '#10b981'
+                        color: prod.quantity === 0 ? '#ef4444' : prod.quantity < 10 ? '#f59e0b' : '#10b981'
                       }}>
                         {prod.quantity}
                       </span>
@@ -3921,13 +3921,13 @@ export default function App(){
               <div style={{background:'linear-gradient(135deg, #10b981 0%, #059669 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
                 <div style={{fontSize:'14px',opacity:'0.9'}}>✅ In Stock</div>
                 <div style={{fontSize:'32px',fontWeight:'bold',marginTop:'8px'}}>
-                  {products.filter(p => p.quantity > p.minStock).length}
+                  {products.filter(p => p.quantity >= 10).length}
                 </div>
               </div>
               <div style={{background:'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
                 <div style={{fontSize:'14px',opacity:'0.9'}}>⚠️ Low Stock</div>
                 <div style={{fontSize:'32px',fontWeight:'bold',marginTop:'8px'}}>
-                  {products.filter(p => p.quantity > 0 && p.quantity <= p.minStock).length}
+                  {products.filter(p => p.quantity > 0 && p.quantity < 10).length}
                 </div>
               </div>
               <div style={{background:'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
@@ -4082,16 +4082,16 @@ export default function App(){
                       <span style={{
                         fontSize: '18px',
                         fontWeight: 'bold',
-                        color: prod.quantity === 0 ? '#ef4444' : prod.quantity <= prod.minStock ? '#f59e0b' : '#10b981'
+                        color: prod.quantity === 0 ? '#ef4444' : prod.quantity < 10 ? '#f59e0b' : '#10b981'
                       }}>
                         {prod.quantity}
                       </span>
                     </td>
-                    <td style={{color:'#666'}}>{prod.minStock || 5}</td>
+                    <td style={{color:'#666'}}>10</td>
                     <td>
                       {prod.quantity === 0 && <span className="badge out-of-stock">Out of Stock</span>}
-                      {prod.quantity > 0 && prod.quantity <= prod.minStock && <span className="badge low-stock">Low Stock</span>}
-                      {prod.quantity > prod.minStock && <span className="badge in-stock">In Stock</span>}
+                      {prod.quantity > 0 && prod.quantity < 10 && <span className="badge low-stock">Low Stock</span>}
+                      {prod.quantity >= 10 && <span className="badge in-stock">In Stock</span>}
                     </td>
                     <td>
                       <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
