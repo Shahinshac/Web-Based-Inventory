@@ -91,17 +91,18 @@ body {
 }
 
 .app header nav button {
-  margin-right: 10px;
-  padding: 10px 24px;
+  margin-right: 8px;
+  padding: 8px 16px;
   border: none;
   background: rgba(255,255,255,0.2);
   color: white;
   border-radius: 25px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
 }
 
 .app header nav button:hover {
@@ -1118,9 +1119,9 @@ ul:not(.products):not(.cart) li:hover {
 
 /* Authentication Badge & Logout Button */
 .auth-badge {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   display: inline-block;
   animation: slideInLeft 0.5s ease-out;
@@ -1143,10 +1144,10 @@ ul:not(.products):not(.cart) li:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   transition: all 0.3s ease;
   animation: slideInRight 0.5s ease-out;
