@@ -4782,13 +4782,39 @@ export default function App(){
                         </td>
                         <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(1)}</strong></td>
                         <td>
-                          <span className={`badge ${
-                            inv.paymentMode === 'Cash' ? 'success' : 
-                            inv.paymentMode === 'UPI' ? 'primary' : 
-                            'info'
-                          }`}>
-                            {inv.paymentMode || 'Cash'}
-                          </span>
+                          {inv.paymentMode === 'split' || inv.paymentMode === 'Split' ? (
+                            <div style={{fontSize:'12px',lineHeight:'1.4'}}>
+                              <div style={{fontWeight:'600',color:'#6366f1',marginBottom:'4px'}}>
+                                💰 Split Payment
+                              </div>
+                              {inv.splitPaymentDetails ? (
+                                <div style={{color:'#64748b'}}>
+                                  {inv.splitPaymentDetails.cashAmount > 0 && (
+                                    <div>💵 Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</div>
+                                  )}
+                                  {inv.splitPaymentDetails.upiAmount > 0 && (
+                                    <div>📱 UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</div>
+                                  )}
+                                  {inv.splitPaymentDetails.cardAmount > 0 && (
+                                    <div>💳 Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{color:'#94a3b8',fontSize:'11px'}}>Details unavailable</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className={`badge ${
+                              inv.paymentMode === 'cash' || inv.paymentMode === 'Cash' ? 'success' : 
+                              inv.paymentMode === 'upi' || inv.paymentMode === 'UPI' ? 'primary' : 
+                              'info'
+                            }`}>
+                              {inv.paymentMode === 'cash' || inv.paymentMode === 'Cash' ? '💵 Cash' :
+                               inv.paymentMode === 'upi' || inv.paymentMode === 'UPI' ? '📱 UPI' :
+                               inv.paymentMode === 'card' || inv.paymentMode === 'Card' ? '💳 Card' :
+                               inv.paymentMode || 'Cash'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))
