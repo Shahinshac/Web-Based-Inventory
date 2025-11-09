@@ -3197,9 +3197,9 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>📦 Products</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📊 Inventory</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>👥 Customers</button>
-          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>📈 Analytics</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>📄 Reports</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={tab==='invoices'?'active':''}>🧾 Invoices</button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>� Analytics</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>� Reports</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👤 Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
           <span style={{display:'inline-flex', alignItems:'center', gap:'10px', marginLeft:'20px', whiteSpace:'nowrap'}}>
