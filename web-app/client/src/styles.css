@@ -1362,13 +1362,19 @@ ul:not(.products):not(.cart) li:hover {
   }
 
   .app header nav {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
+    display: block;
     margin-left: 0;
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 5px;
+  }
+
+  .app header nav button,
+  .app header nav .auth-badge,
+  .app header nav .logout-btn {
+    display: inline-block;
+    vertical-align: middle;
   }
 
   .app header nav button {
