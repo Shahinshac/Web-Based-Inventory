@@ -1749,6 +1749,41 @@ async function initializeAdminUser() {
   }
 }
 
+// ADMIN ONLY - Clear all database collections
+app.delete('/api/admin/clear-all-data', async (req, res) => {
+  try {
+    const db = getDB();
+    
+    // Clear all collections
+    await db.collection('products').deleteMany({});
+    await db.collection('customers').deleteMany({});
+    await db.collection('bills').deleteMany({});
+    await db.collection('expenses').deleteMany({});
+    await db.collection('audit_logs').deleteMany({});
+    
+    // Keep users collection but delete all except admin
+    await db.collection('users').deleteMany({ role: { $ne: 'admin' } });
+    
+    logger.info('🗑️  All database data cleared successfully');
+    
+    res.json({ 
+      success: true, 
+      message: 'All data cleared successfully',
+      cleared: {
+        products: true,
+        customers: true,
+        bills: true,
+        expenses: true,
+        audit_logs: true,
+        users: 'All non-admin users deleted'
+      }
+    });
+  } catch (error) {
+    logger.error('Error clearing database:', error);
+    res.status(500).json({ error: 'Failed to clear database', details: error.message });
+  }
+});
+
 // Connect to MongoDB and start server
 connectDB()
   .then(async () => {
