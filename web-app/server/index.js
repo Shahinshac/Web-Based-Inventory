@@ -1704,11 +1704,17 @@ app.get('/api/export/invoices', async (req, res) => {
   }
 });
 
-// Serve static built client if present
+// Serve static built client if present (but not for /api routes)
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 if (require('fs').existsSync(clientDist)) {
   app.use(express.static(clientDist));
-  app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+  // Only serve index.html for non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next(); // Let API routes handle it
+    }
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
 }
 
 const port = process.env.PORT || 4000;
