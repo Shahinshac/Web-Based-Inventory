@@ -26,6 +26,7 @@ export default function App(){
   const [customers, setCustomers] = useState([])
   const [cart, setCart] = useState([])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [salespersonName, setSalespersonName] = useState('')
   const [invoices, setInvoices] = useState([])
   const [stats, setStats] = useState({})
   const [showAddProduct, setShowAddProduct] = useState(false)
@@ -1534,7 +1535,8 @@ export default function App(){
         upiAmount: splitPayment ? (parseFloat(upiAmount) || 0) : 0,
         cardAmount: splitPayment ? (parseFloat(cardAmount) || 0) : 0,
         userId: currentUser?.id || null,
-        username: isAdmin ? 'admin' : currentUser?.username
+        username: isAdmin ? 'admin' : currentUser?.username,
+        salesperson: salespersonName || (isAdmin ? 'admin' : currentUser?.username || 'Cashier')
       }
 
       // Handle online checkout
@@ -1555,7 +1557,9 @@ export default function App(){
             discountValue: discount,
             taxRate: taxRate,
             taxAmount: taxAmount,
-            total: grandTotal
+            total: grandTotal,
+            salesperson: salespersonName || (isAdmin ? 'admin' : currentUser?.username || 'Cashier'),
+            date: new Date().toISOString()
           });
           setShowBill(true);
           
@@ -1579,6 +1583,7 @@ export default function App(){
           setCashAmount('');
           setUpiAmount('');
           setCardAmount('');
+          setSalespersonName('');
           
           // Refresh data
           fetchProducts(); 
@@ -2166,6 +2171,10 @@ export default function App(){
                 <div class="meta-row">
                   <span class="meta-label">Time:</span>
                   <span class="meta-value">${new Date(lastBill.date).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Salesperson:</span>
+                  <span class="meta-value">${lastBill.salesperson || 'Cashier'}</span>
                 </div>
                 <div class="meta-row">
                   <span class="meta-label">Payment:</span>
@@ -3651,6 +3660,18 @@ export default function App(){
                   <option value="">Walk-in Customer</option>
                   {customers.map(c=> <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+
+              {/* Salesperson Name */}
+              <div className="form-group">
+                <label>Salesperson Name:</label>
+                <input 
+                  type="text" 
+                  value={salespersonName} 
+                  onChange={(e) => setSalespersonName(e.target.value)}
+                  placeholder={isAdmin ? 'Admin' : currentUser?.username || 'Enter name'}
+                  style={{width:'100%'}} 
+                />
               </div>
 
               {/* Cart Items */}
