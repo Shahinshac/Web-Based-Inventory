@@ -4134,7 +4134,7 @@ export default function App(){
                     </td>
                     <td>
                       <strong>{prod.name}</strong>
-                      <div style={{fontSize:'0.85em',color:'#666'}}>{prod.category || 'Uncategorized'}</div>
+                      {prod.category && <div style={{fontSize:'0.85em',color:'#666'}}>{prod.category}</div>}
                     </td>
                     <td>
                       <span style={{
