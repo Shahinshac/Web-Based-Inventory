@@ -30,7 +30,7 @@ export default function App(){
   const [stats, setStats] = useState({})
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showAddCustomer, setShowAddCustomer] = useState(false)
-  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, serialNo:'', barcode:'', autoFetchImage: true})
+  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, serialNo:'', barcode:''})
   const [newCustomer, setNewCustomer] = useState({name:'', phone:'', address:'', gstin:''})
   const [loading, setLoading] = useState(true)
   const [discount, setDiscount] = useState(0)
@@ -42,8 +42,8 @@ export default function App(){
   const [companyInfo, setCompanyInfo] = useState({
     name: '26:07 Electronics',
     address: 'Electronics Plaza, Tech Street, City - 560001',
-    phone: '+91 9876543210',
-    email: 'support@2607electronics.com',
+    phone: '+91 7594012761',
+    email: 'shahinsha.c123@gmail.com',
     gstin: '29AABCU9603R1ZX',
     logo: '⚡'
   })
@@ -1285,109 +1285,6 @@ export default function App(){
       addToCart(product)
     }
     showNotification(`Added ${quantity}x ${product.name} to cart!`, 'success')
-  }
-
-  // PDF Export Functions
-  function exportInvoiceToPDF(invoice) {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('INVOICE', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.text(`Invoice #${invoice.id}`, 20, 35);
-    doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, 20, 42);
-    doc.text(`Customer: ${invoice.customer_name || 'Walk-in Customer'}`, 20, 49);
-    
-    // Items table
-    const items = invoice.items || [];
-    const tableData = items.map(item => [
-      item.productName || item.name || 'Unknown',
-      item.quantity || 0,
-      `₹${(item.unitPrice || item.price || 0).toFixed(1)}`,
-      `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(1)}`
-    ]);
-    
-    doc.autoTable({
-      startY: 60,
-      head: [['Product', 'Qty', 'Unit Price', 'Total']],
-      body: tableData,
-      theme: 'grid'
-    });
-    
-    const finalY = doc.lastAutoTable.finalY + 10;
-    
-    // Totals
-    doc.text(`Subtotal: ${formatCurrency(invoice.subtotal || 0)}`, 150, finalY);
-    doc.text(`Discount (${invoice.discountPercent || 0}%): -${formatCurrency(invoice.discountAmount || 0)}`, 150, finalY + 7);
-    doc.text(`GST (18%): ${formatCurrency(invoice.taxAmount || 0)}`, 150, finalY + 14);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Grand Total: ${formatCurrency(invoice.total || 0)}`, 150, finalY + 24);
-    
-    doc.save(`Invoice-${invoice.id}.pdf`);
-    showNotification('✅ Invoice PDF downloaded!', 'success');
-  }
-
-  function exportProductsToPDF() {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text('Product Inventory Report', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
-    
-    const tableData = products.map((p, index) => [
-      index + 1,
-      p.name,
-      p.quantity,
-      `₹${p.price.toFixed(1)}`,
-      p.quantity === 0 ? 'Out of Stock' : p.quantity < 10 ? 'Low Stock' : 'In Stock'
-    ]);
-    
-    doc.autoTable({
-      startY: 30,
-      head: [['SI No', 'Name', 'Stock', 'Price', 'Status']],
-      body: tableData,
-      theme: 'striped'
-    });
-    
-    doc.save('Products-Report.pdf');
-    showNotification('✅ Products PDF downloaded!', 'success');
-  }
-
-  function exportTransactionsToPDF() {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text('Transactions Report', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
-    
-    const tableData = getFilteredInvoices().map(inv => [
-      `#${inv.id}`,
-      inv.customer_name || 'Walk-in',
-      `₹${(inv.total || 0).toFixed(1)}`,
-      inv.paymentMode || 'Cash',
-      new Date(inv.created_at).toLocaleDateString()
-    ]);
-    
-    doc.autoTable({
-      startY: 30,
-      head: [['Invoice #', 'Customer', 'Amount', 'Payment', 'Date']],
-      body: tableData,
-      theme: 'grid'
-    });
-    
-    const finalY = doc.lastAutoTable.finalY + 10;
-    const total = getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Total Revenue: ₹${total.toFixed(1)}`, 150, finalY);
-    
-    doc.save('Transactions-Report.pdf');
-    showNotification('✅ Transactions PDF downloaded!', 'success');
   }
 
   // Backup and Restore Functions
@@ -2641,20 +2538,10 @@ export default function App(){
       if (res.ok) { 
         const result = await res.json();
         
-        // Handle image fetch result gracefully
-        let successMessage = `✓ Product "${newProduct.name}" added successfully!`;
-        if (newProduct.autoFetchImage) {
-          if (result.autoImageFetched) {
-            successMessage = `✓ Product "${newProduct.name}" added with image!`;
-          } else {
-            successMessage = `✓ Product "${newProduct.name}" added (image will be processed in background)`;
-          }
-        }
-          
-        showNotification(successMessage, 'success');
+        showNotification(`✓ Product "${newProduct.name}" added successfully!`, 'success');
         addActivity('Product Added', newProduct.name);
         setShowAddProduct(false); 
-        setNewProduct({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, autoFetchImage: true}); 
+        setNewProduct({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10}); 
         
         // Refresh data
         await fetchProducts(); 
@@ -2686,43 +2573,6 @@ export default function App(){
       } else {
         showNotification('Failed to add product. Please check your connection and try again.', 'error');
       }
-    }
-  }
-
-  // Auto-fetch image for existing product
-  async function autoFetchProductImage(productId, productName) {
-    try {
-      showNotification(`🔄 Fetching professional image for "${productName}"...`, 'info');
-      
-      const res = await fetch(API(`/api/products/${productId}/auto-photo`), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          userId: currentUser?.id || null,
-          username: isAdmin ? 'admin' : currentUser?.username
-        })
-      });
-      
-      if (res.ok) {
-        const result = await res.json();
-        showNotification(`✓ Professional image fetched for "${productName}"!`, 'success');
-        await fetchProducts(); // Refresh product list
-      } else {
-        const err = await res.json();
-        
-        // Handle specific error cases gracefully
-        if (err.error && err.error.includes('suitable image')) {
-          showNotification(`📷 Generated placeholder image for "${productName}". You can upload a custom image later.`, 'warning');
-        } else {
-          showNotification(`⚠️ Image fetch failed: ${err.error || 'Unknown error'}`, 'warning');
-        }
-        
-        // Still refresh products in case a fallback image was created
-        await fetchProducts();
-      }
-    } catch (e) {
-      console.error('Auto-fetch image error:', e);
-      showNotification(`❌ Failed to fetch image for "${productName}". Please check your internet connection.`, 'error');
     }
   }
 
@@ -4026,16 +3876,15 @@ export default function App(){
                        style={{width:'100%'}} />
               </div>
 
-              {/* GST Rate */}
+              {/* GST Rate - Fixed at 18% */}
               <div className="form-group">
                 <label>GST Rate:</label>
-                <select value={taxRate} onChange={(e)=>setTaxRate(parseFloat(e.target.value))}>
-                  <option value="0">0% (Exempt)</option>
-                  <option value="5">5% GST</option>
-                  <option value="12">12% GST</option>
-                  <option value="18">18% GST</option>
-                  <option value="28">28% GST</option>
-                </select>
+                <input 
+                  type="text" 
+                  value="18% (Fixed)" 
+                  disabled 
+                  style={{width:'100%', backgroundColor:'#f0f0f0', color:'#666', cursor:'not-allowed'}} 
+                />
               </div>
 
               {/* Payment Mode */}
@@ -4411,31 +4260,6 @@ export default function App(){
                         >
                           📷
                         </button>
-                        {canEdit() && (
-                          <button
-                            onClick={() => requireAuth(() => autoFetchProductImage(prod.id, prod.name))}
-                            style={{
-                              position:'absolute',
-                              bottom:'-5px',
-                              right:'-5px',
-                              width:'24px',
-                              height:'24px',
-                              borderRadius:'50%',
-                              background:'#28a745',
-                              color:'white',
-                              border:'2px solid white',
-                              cursor:'pointer',
-                              fontSize:'10px',
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              padding:0
-                            }}
-                            title="Auto-fetch image from internet"
-                          >
-                            🌐
-                          </button>
-                        )}
                       </div>
                     </td>
                     <td style={{fontFamily:'monospace', fontSize:'0.9em'}}>
@@ -5290,18 +5114,6 @@ export default function App(){
                   onChange={(e)=>setNewProduct({...newProduct, hsnCode:e.target.value})}
                   placeholder="HSN/SAC code for GST"
                 />
-              </div>
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input 
-                    type="checkbox" 
-                    checked={newProduct.autoFetchImage}
-                    onChange={(e)=>setNewProduct({...newProduct, autoFetchImage:e.target.checked})}
-                  />
-                  <span className="checkmark"></span>
-                  Automatically fetch product image from internet
-                </label>
-                <small className="form-help">We'll try to find a suitable image based on the product name</small>
               </div>
               <div className="modal-actions">
                 <button type="submit" className="btn-primary">Add Product</button>
