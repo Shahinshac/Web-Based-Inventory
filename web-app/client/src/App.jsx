@@ -3160,11 +3160,9 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
-        </nav>
-        <div style={{display:'inline-block', marginLeft:'20px', verticalAlign:'middle'}}>
-          <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
+          <span className="auth-badge authenticated" style={{marginLeft:'20px'}}>✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
           <button onClick={handleLogout} className="logout-btn" style={{marginLeft:'10px',background:'#48bb78'}}>Logout</button>
-        </div>
+        </nav>
       </header>
       <main>
         {tab==='dashboard' && (
