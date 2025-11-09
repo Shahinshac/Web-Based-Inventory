@@ -3894,13 +3894,13 @@ export default function App(){
                 ))}
                 {getFilteredProducts().length === 0 && (
                   <tr>
-                    <td colSpan="6" style={{textAlign:'center',padding:'60px 20px'}}>
+                    <td colSpan="7" style={{textAlign:'center',padding:'60px 20px'}}>
                       <div style={{fontSize:'48px',marginBottom:'16px'}}>📦</div>
                       <div style={{fontSize:'18px',color:'#666',marginBottom:'8px',fontWeight:'500'}}>
-                        {searchTerm ? 'No products found' : 'No products yet'}
+                        {searchQuery ? 'No products found' : 'No products yet'}
                       </div>
                       <div style={{fontSize:'14px',color:'#999'}}>
-                        {searchTerm ? 'Try a different search term' : 'Click "Add Product" to get started with your inventory'}
+                        {searchQuery ? 'Try a different search term' : 'Click "Add Product" to get started with your inventory'}
                       </div>
                     </td>
                   </tr>
