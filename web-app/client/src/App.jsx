@@ -29,7 +29,7 @@ export default function App(){
   const [stats, setStats] = useState({})
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showAddCustomer, setShowAddCustomer] = useState(false)
-  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, sku:'', barcode:'', autoFetchImage: true})
+  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, serialNo:'', barcode:'', autoFetchImage: true})
   const [newCustomer, setNewCustomer] = useState({name:'', phone:'', address:'', gstin:''})
   const [loading, setLoading] = useState(true)
   const [discount, setDiscount] = useState(0)
@@ -1311,8 +1311,8 @@ export default function App(){
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
     
-    const tableData = products.map(p => [
-      p.sku || 'N/A',
+    const tableData = products.map((p, index) => [
+      index + 1,
       p.name,
       p.quantity,
       `₹${p.price.toFixed(2)}`,
@@ -1321,7 +1321,7 @@ export default function App(){
     
     doc.autoTable({
       startY: 30,
-      head: [['SKU', 'Name', 'Stock', 'Price', 'Status']],
+      head: [['SI No', 'Name', 'Stock', 'Price', 'Status']],
       body: tableData,
       theme: 'striped'
     });
@@ -2319,7 +2319,6 @@ export default function App(){
       
       // If API search fails, try local search as fallback
       const localProduct = products.find(p => 
-        p.sku === barcode || 
         p.barcode === barcode || 
         p.name.toLowerCase().includes(barcode.toLowerCase()) ||
         p.id === barcode ||
@@ -2545,7 +2544,7 @@ export default function App(){
   }
 
   async function scanBarcodeInPOS() {
-    const barcode = prompt('Enter or scan barcode/SKU/product name:');
+    const barcode = prompt('Enter or scan barcode/product name:');
     if (!barcode) return;
     
     try {
@@ -2612,7 +2611,6 @@ export default function App(){
             <h2>${barcodeProduct?.name}</h2>
             <img src="${barcodeImage}" alt="Barcode" />
             <div class="price">₹${barcodeProduct?.price?.toFixed(2)}</div>
-            ${barcodeProduct?.sku ? `<div>SKU: ${barcodeProduct.sku}</div>` : ''}
           </div>
           <button class="no-print" onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">
             Print
@@ -3080,7 +3078,6 @@ export default function App(){
                 {products.filter(p => p.quantity === 0).map(p => (
                   <div key={p._id} className="alert-item out-of-stock">
                     <span className="alert-product">{p.name}</span>
-                    <span className="alert-sku">{p.sku}</span>
                     <span className="alert-status">Out of Stock</span>
                   </div>
                 ))}
@@ -3091,7 +3088,6 @@ export default function App(){
                 {products.filter(p => p.quantity > 0 && p.quantity <= p.minStock).map(p => (
                   <div key={p._id} className="alert-item low-stock">
                     <span className="alert-product">{p.name}</span>
-                    <span className="alert-sku">{p.sku}</span>
                     <span className="alert-quantity">{p.quantity} / {p.minStock}</span>
                   </div>
                 ))}
@@ -3109,8 +3105,8 @@ export default function App(){
             <h2>📦 {selectedProduct.name}</h2>
             <div className="product-details-grid">
               <div className="detail-row">
-                <span className="detail-label">SKU/Barcode:</span>
-                <span className="detail-value">{selectedProduct.sku}</span>
+                <span className="detail-label">Barcode:</span>
+                <span className="detail-value">{selectedProduct.barcode || 'N/A'}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Cost Price:</span>
@@ -3325,8 +3321,7 @@ export default function App(){
               <ul className="products">
                 {products
                   .filter(p => searchQuery === '' || 
-                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase())
                   )
                   .map((p, idx)=> (
                     <li key={p.id} className="fade-in" style={{position: 'relative', animationDelay: `${idx * 0.03}s`}}>
@@ -3642,7 +3637,7 @@ export default function App(){
             <table>
               <thead>
                 <tr>
-                  <th>SKU</th>
+                  <th>SI No</th>
                   <th>Name</th>
                   <th>Stock</th>
                   {canViewProfit() && <th>Cost Price</th>}
@@ -3652,9 +3647,9 @@ export default function App(){
                 </tr>
               </thead>
               <tbody>
-                {getFilteredProducts().map(prod => (
+                {getFilteredProducts().map((prod, index) => (
                   <tr key={prod.id} className="fade-in table-row-hover">
-                    <td style={{fontFamily:'monospace', fontSize:'0.9em'}}>{prod.sku || 'N/A'}</td>
+                    <td style={{fontFamily:'monospace', fontSize:'0.9em'}}>{index + 1}</td>
                     <td>
                       <span onClick={() => {setSelectedProduct(prod); setShowProductDetails(true);}} style={{cursor:'pointer', textDecoration:'underline', color:'#3498db'}}>
                         {prod.name}
@@ -4832,7 +4827,7 @@ export default function App(){
                 type="text"
                 value={scannedBarcode}
                 onChange={(e) => setScannedBarcode(e.target.value)}
-                placeholder="Enter barcode/SKU and press Enter"
+                placeholder="Enter barcode and press Enter"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && scannedBarcode.trim()) {
                     handleBarcodeResult(scannedBarcode.trim());
@@ -4873,11 +4868,6 @@ export default function App(){
             }}>
               <h3 style={{margin: '0 0 8px 0', fontSize: '24px'}}>{barcodeProduct.name}</h3>
               <div style={{fontSize: '32px', fontWeight: 'bold'}}>₹{barcodeProduct.price?.toFixed(2)}</div>
-              {barcodeProduct.sku && (
-                <div style={{fontSize: '14px', marginTop: '8px', opacity: 0.9}}>
-                  SKU: {barcodeProduct.sku}
-                </div>
-              )}
             </div>
 
             <div style={{
