@@ -2,6 +2,8 @@ import React, {useEffect, useState, useRef} from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { initAnalytics, trackPageView, trackEvent, trackUserInteraction } from './analytics'
 import Login from './Login'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 // 26:07 Electronics - Inventory Management System
 const API = (path) => {
@@ -104,6 +106,20 @@ export default function App(){
   
   // Checkout loading state
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  
+  // Expense tracking states
+  const [expenses, setExpenses] = useState([]);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [expenseCategory, setExpenseCategory] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Multiple payment methods
+  const [splitPayment, setSplitPayment] = useState(false);
+  const [cashAmount, setCashAmount] = useState('');
+  const [upiAmount, setUpiAmount] = useState('');
+  const [cardAmount, setCardAmount] = useState('');
   
   // Analytics data
   const [analyticsData, setAnalyticsData] = useState({
@@ -1244,6 +1260,229 @@ export default function App(){
     showNotification(`Added ${quantity}x ${product.name} to cart!`, 'success')
   }
 
+  // PDF Export Functions
+  function exportInvoiceToPDF(invoice) {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('INVOICE', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`Invoice #${invoice.id}`, 20, 35);
+    doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, 20, 42);
+    doc.text(`Customer: ${invoice.customer_name || 'Walk-in Customer'}`, 20, 49);
+    
+    // Items table
+    const items = invoice.items || [];
+    const tableData = items.map(item => [
+      item.productName || item.name || 'Unknown',
+      item.quantity || 0,
+      `₹${(item.unitPrice || item.price || 0).toFixed(2)}`,
+      `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(2)}`
+    ]);
+    
+    doc.autoTable({
+      startY: 60,
+      head: [['Product', 'Qty', 'Unit Price', 'Total']],
+      body: tableData,
+      theme: 'grid'
+    });
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    
+    // Totals
+    doc.text(`Subtotal: ₹${(invoice.subtotal || 0).toFixed(2)}`, 150, finalY);
+    doc.text(`Discount (${invoice.discountPercent || 0}%): -₹${(invoice.discountAmount || 0).toFixed(2)}`, 150, finalY + 7);
+    doc.text(`GST (${invoice.taxRate || 0}%): ₹${(invoice.taxAmount || 0).toFixed(2)}`, 150, finalY + 14);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Grand Total: ₹${(invoice.total || 0).toFixed(2)}`, 150, finalY + 24);
+    
+    doc.save(`Invoice-${invoice.id}.pdf`);
+    showNotification('✅ Invoice PDF downloaded!', 'success');
+  }
+
+  function exportProductsToPDF() {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Product Inventory Report', 105, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+    
+    const tableData = products.map(p => [
+      p.sku || 'N/A',
+      p.name,
+      p.quantity,
+      `₹${p.price.toFixed(2)}`,
+      p.quantity === 0 ? 'Out of Stock' : p.quantity <= p.minStock ? 'Low Stock' : 'In Stock'
+    ]);
+    
+    doc.autoTable({
+      startY: 30,
+      head: [['SKU', 'Name', 'Stock', 'Price', 'Status']],
+      body: tableData,
+      theme: 'striped'
+    });
+    
+    doc.save('Products-Report.pdf');
+    showNotification('✅ Products PDF downloaded!', 'success');
+  }
+
+  function exportTransactionsToPDF() {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Transactions Report', 105, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+    
+    const tableData = getFilteredInvoices().map(inv => [
+      `#${inv.id}`,
+      inv.customer_name || 'Walk-in',
+      `₹${(inv.total || 0).toFixed(2)}`,
+      inv.paymentMode || 'Cash',
+      new Date(inv.created_at).toLocaleDateString()
+    ]);
+    
+    doc.autoTable({
+      startY: 30,
+      head: [['Invoice #', 'Customer', 'Amount', 'Payment', 'Date']],
+      body: tableData,
+      theme: 'grid'
+    });
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const total = getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Total Revenue: ₹${total.toFixed(2)}`, 150, finalY);
+    
+    doc.save('Transactions-Report.pdf');
+    showNotification('✅ Transactions PDF downloaded!', 'success');
+  }
+
+  // Backup and Restore Functions
+  function downloadBackup() {
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      products: products,
+      customers: customers,
+      invoices: invoices,
+      expenses: expenses,
+      version: '1.0'
+    };
+    
+    const dataStr = JSON.stringify(backupData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `inventory-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('✅ Backup downloaded successfully!', 'success');
+    trackEvent('backup_downloaded', 'data_management');
+  }
+
+  async function restoreBackup(file) {
+    try {
+      const text = await file.text();
+      const backupData = JSON.parse(text);
+      
+      if (!backupData.version || !backupData.timestamp) {
+        showNotification('❌ Invalid backup file format', 'error');
+        return;
+      }
+      
+      if (window.confirm('This will restore all data from the backup. Continue?')) {
+        if (backupData.products) setProducts(backupData.products);
+        if (backupData.customers) setCustomers(backupData.customers);
+        if (backupData.expenses) setExpenses(backupData.expenses);
+        
+        showNotification('✅ Backup restored successfully!', 'success');
+        trackEvent('backup_restored', 'data_management');
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
+      showNotification('❌ Failed to restore backup: ' + error.message, 'error');
+    }
+  }
+
+  // Expense Management Functions
+  async function fetchExpenses() {
+    try {
+      const res = await fetch(API('/api/expenses'));
+      if (res.ok) {
+        const data = await res.json();
+        setExpenses(data.expenses || []);
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+    }
+  }
+
+  async function addExpense() {
+    if (!expenseCategory || !expenseAmount || !expenseDescription) {
+      showNotification('❌ Please fill all expense fields', 'error');
+      return;
+    }
+
+    try {
+      const expenseData = {
+        category: expenseCategory,
+        amount: parseFloat(expenseAmount),
+        description: expenseDescription,
+        date: expenseDate,
+        userId: currentUser?.id || null
+      };
+
+      const res = await fetch(API('/api/expenses'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expenseData)
+      });
+
+      if (res.ok) {
+        showNotification('✅ Expense added successfully!', 'success');
+        setExpenseCategory('');
+        setExpenseAmount('');
+        setExpenseDescription('');
+        setExpenseDate(new Date().toISOString().split('T')[0]);
+        setShowAddExpense(false);
+        fetchExpenses();
+        addActivity('Expense Added', `₹${expenseAmount} - ${expenseCategory}`);
+      } else {
+        showNotification('❌ Failed to add expense', 'error');
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      showNotification('❌ Error adding expense', 'error');
+    }
+  }
+
+  async function deleteExpense(id) {
+    if (!window.confirm('Delete this expense?')) return;
+
+    try {
+      const res = await fetch(API(`/api/expenses/${id}`), {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        showNotification('✅ Expense deleted', 'success');
+        fetchExpenses();
+      } else {
+        showNotification('❌ Failed to delete expense', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      showNotification('❌ Error deleting expense', 'error');
+    }
+  }
+
   // Bulk stock update
   async function bulkUpdateStock(updates) {
     try {
@@ -1416,6 +1655,28 @@ export default function App(){
       const taxAmount = afterDiscount * (taxRate / 100);
       const grandTotal = afterDiscount + taxAmount;
       
+      // Validate split payment amounts if enabled
+      let paymentDetails = { mode: paymentMode };
+      if (splitPayment) {
+        const cash = parseFloat(cashAmount) || 0;
+        const upi = parseFloat(upiAmount) || 0;
+        const card = parseFloat(cardAmount) || 0;
+        const totalPaid = cash + upi + card;
+        
+        if (Math.abs(totalPaid - grandTotal) > 0.01) {
+          showNotification(`❌ Payment total (₹${totalPaid.toFixed(2)}) doesn't match grand total (₹${grandTotal.toFixed(2)})`, 'error');
+          setCheckoutLoading(false);
+          return;
+        }
+        
+        paymentDetails = {
+          mode: 'Split',
+          cash: cash,
+          upi: upi,
+          card: card
+        };
+      }
+      
       const payload = { 
         customerId: selectedCustomer?.id || null, 
         total: grandTotal,
@@ -1427,7 +1688,8 @@ export default function App(){
         items: cart,
         discountPercent: discount,
         customerState: 'Same',
-        paymentMode: paymentMode,
+        paymentMode: splitPayment ? 'Split' : paymentMode,
+        paymentDetails: paymentDetails,
         userId: currentUser?.id || null,
         username: isAdmin ? 'admin' : currentUser?.username
       }
@@ -1470,6 +1732,10 @@ export default function App(){
           setDiscount(0);
           setPaymentMode('Cash');
           setSearchQuery('');
+          setSplitPayment(false);
+          setCashAmount('');
+          setUpiAmount('');
+          setCardAmount('');
           
           // Refresh data
           fetchProducts(); 
@@ -1523,6 +1789,10 @@ export default function App(){
           setDiscount(0);
           setPaymentMode('Cash');
           setSearchQuery('');
+          setSplitPayment(false);
+          setCashAmount('');
+          setUpiAmount('');
+          setCardAmount('');
           
           // Update offline transactions list
           await loadOfflineTransactions();
@@ -2885,9 +3155,11 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>Products</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📦 Inventory</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>Customers</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={tab==='invoices'?'active':''}>Invoices</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('transactions')}} className={tab==='transactions'?'active':''}>💳 Transactions</button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('expenses');fetchExpenses()}}} className={tab==='expenses'?'active':''}>💰 Expenses</button>
           <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>📊 Analytics</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>Reports</button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('backup')}} className={tab==='backup'?'active':''}>💾 Backup</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👥 Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
         </nav>
@@ -3195,14 +3467,83 @@ export default function App(){
               {/* Payment Mode */}
               <div className="form-group">
                 <label>Payment Mode:</label>
-                <select value={paymentMode} onChange={(e)=>setPaymentMode(e.target.value)}>
+                <select value={splitPayment ? 'Split' : paymentMode} onChange={(e)=>{
+                  if (e.target.value === 'Split') {
+                    setSplitPayment(true);
+                  } else {
+                    setSplitPayment(false);
+                    setPaymentMode(e.target.value);
+                  }
+                }}>
                   <option value="Cash">💵 Cash</option>
                   <option value="Card">💳 Card</option>
                   <option value="UPI">📱 UPI</option>
                   <option value="Net Banking">🏦 Net Banking</option>
                   <option value="Cheque">📝 Cheque</option>
+                  <option value="Split">💰 Split Payment</option>
                 </select>
               </div>
+
+              {/* Split Payment Inputs */}
+              {splitPayment && cart.length > 0 && (() => {
+                const subtotal = cart.reduce((s,it)=> s + it.price*it.quantity, 0);
+                const discountAmount = subtotal * discount / 100;
+                const afterDiscount = subtotal - discountAmount;
+                const taxAmount = afterDiscount * (taxRate / 100);
+                const grandTotal = afterDiscount + taxAmount;
+                const totalPaid = (parseFloat(cashAmount) || 0) + (parseFloat(upiAmount) || 0) + (parseFloat(cardAmount) || 0);
+                const remaining = grandTotal - totalPaid;
+                
+                return (
+                  <div style={{marginBottom: '15px', padding: '15px', background: '#f7fafc', borderRadius: '8px'}}>
+                    <div style={{marginBottom: '10px', fontWeight: '600', color: '#2d3748'}}>
+                      Split Payment - Total: ₹{grandTotal.toFixed(2)}
+                    </div>
+                    <div className="form-group" style={{marginBottom: '10px'}}>
+                      <label>💵 Cash Amount:</label>
+                      <input 
+                        type="number" 
+                        value={cashAmount} 
+                        onChange={(e)=>setCashAmount(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="form-group" style={{marginBottom: '10px'}}>
+                      <label>📱 UPI Amount:</label>
+                      <input 
+                        type="number" 
+                        value={upiAmount} 
+                        onChange={(e)=>setUpiAmount(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="form-group" style={{marginBottom: '10px'}}>
+                      <label>💳 Card Amount:</label>
+                      <input 
+                        type="number" 
+                        value={cardAmount} 
+                        onChange={(e)=>setCardAmount(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div style={{
+                      padding: '10px',
+                      background: remaining === 0 ? '#c6f6d5' : remaining > 0 ? '#fff5f5' : '#bee3f8',
+                      borderRadius: '5px',
+                      fontWeight: '600',
+                      color: remaining === 0 ? '#2f855a' : remaining > 0 ? '#c53030' : '#2c5282'
+                    }}>
+                      {remaining === 0 ? '✓ Exact Amount' : remaining > 0 ? `⚠️ Remaining: ₹${remaining.toFixed(2)}` : `⚠️ Excess: ₹${Math.abs(remaining).toFixed(2)}`}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Bill Breakdown */}
               {cart.length > 0 && (() => {
@@ -3639,14 +3980,17 @@ export default function App(){
           </div>
         )}
 
-        {tab==='invoices' && (
+        {tab==='transactions' && (
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-              <h2 style={{margin: 0}}>Invoice History</h2>
+              <h2 style={{margin: 0}}>💳 Completed Transactions</h2>
               
-              {/* Date Filter */}
-              <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                <label style={{fontWeight: '500'}}>Filter by:</label>
+              <div style={{display: 'flex', gap: '10px'}}>
+                <button onClick={exportTransactionsToPDF} className="btn-primary" style={{padding: '10px 20px'}}>
+                  📄 Export to PDF
+                </button>
+                
+                {/* Date Filter */}
                 <select 
                   value={invoiceDateFilter} 
                   onChange={(e) => setInvoiceDateFilter(e.target.value)}
@@ -3668,7 +4012,7 @@ export default function App(){
                       style={{padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px'}}
                       placeholder="Start Date"
                     />
-                    <span>to</span>
+                    <span style={{alignSelf: 'center'}}>to</span>
                     <input 
                       type="date" 
                       value={customEndDate}
@@ -3681,104 +4025,109 @@ export default function App(){
               </div>
             </div>
             
-            {/* Summary for filtered invoices */}
-            {invoiceDateFilter !== 'all' && (
-              <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                padding: '15px 20px',
-                borderRadius: '8px',
-                marginBottom: '20px',
-                display: 'flex',
-                justifyContent: 'space-around',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{fontSize: '24px', fontWeight: 'bold'}}>
-                    {getFilteredInvoices().length}
-                  </div>
-                  <div style={{fontSize: '13px', opacity: 0.9}}>Invoices</div>
-                </div>
-                <div style={{width: '1px', height: '40px', background: 'rgba(255,255,255,0.3)'}}></div>
-                <div>
-                  <div style={{fontSize: '24px', fontWeight: 'bold'}}>
-                    ₹{getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0).toFixed(2)}
-                  </div>
-                  <div style={{fontSize: '13px', opacity: 0.9}}>Total Revenue</div>
-                </div>
-                <div style={{width: '1px', height: '40px', background: 'rgba(255,255,255,0.3)'}}></div>
-                <div>
-                  <div style={{fontSize: '24px', fontWeight: 'bold'}}>
-                    ₹{getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0).toFixed(2)}
-                  </div>
-                  <div style={{fontSize: '13px', opacity: 0.9}}>Total Revenue</div>
-                </div>
-                {canViewProfit() && (
-                  <>
-                    <div style={{width: '1px', height: '40px', background: 'rgba(255,255,255,0.3)'}}></div>
-                    <div>
-                      <div style={{fontSize: '24px', fontWeight: 'bold'}}>
-                        ₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.totalProfit || 0), 0).toFixed(2)}
-                      </div>
-                      <div style={{fontSize: '13px', opacity: 0.9}}>Total Profit</div>
-                    </div>
-                  </>
-                )}
+            {/* Summary Stats Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '20px',
+              marginBottom: '30px'
+            }}>
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9, marginBottom: '5px'}}>Total Transactions</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>{getFilteredInvoices().length}</div>
               </div>
-            )}
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9, marginBottom: '5px'}}>Total Revenue</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>₹{getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0).toFixed(1)}</div>
+              </div>
+              {canViewProfit() && (
+                <div className="stat-card" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white'}}>
+                  <div style={{fontSize: '14px', opacity: 0.9, marginBottom: '5px'}}>Total Profit</div>
+                  <div style={{fontSize: '32px', fontWeight: 'bold'}}>₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.totalProfit || 0), 0).toFixed(1)}</div>
+                </div>
+              )}
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9, marginBottom: '5px'}}>Avg Transaction</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>
+                  ₹{getFilteredInvoices().length > 0 ? (getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0) / getFilteredInvoices().length).toFixed(1) : '0'}
+                </div>
+              </div>
+            </div>
             
-            <table>
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Customer</th>
-                  <th>Subtotal</th>
-                  <th>Discount</th>
-                  <th>After Discount</th>
-                  <th>GST</th>
-                  <th>Grand Total</th>
-                  {canViewProfit() && <th>Profit</th>}
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getFilteredInvoices().map(inv => {
-                  const subtotal = inv.subtotal || 0;
-                  const discountPercent = inv.discountPercent || inv.discountValue || 0;
-                  const discountAmount = inv.discountAmount || 0;
-                  const afterDiscount = subtotal - discountAmount;
-                  const taxRate = inv.taxRate || 0;
-                  const taxAmount = inv.taxAmount || 0;
-                  
-                  return (
-                    <tr key={inv.id}>
-                      <td>#{inv.id}</td>
-                      <td>{inv.customer_name || 'Walk-in'}</td>
-                      <td>₹{subtotal.toFixed(2)}</td>
-                      <td>{discountPercent}%{discountAmount > 0 ? ` (-₹${discountAmount.toFixed(2)})` : ''}</td>
-                      <td>₹{afterDiscount.toFixed(2)}</td>
-                      <td>{taxRate}% (₹{taxAmount.toFixed(2)})</td>
-                      <td style={{fontWeight: 'bold'}}>₹{inv.total.toFixed(2)}</td>
-                      {canViewProfit() && <td style={{color: 'green', fontWeight: 'bold'}}>₹{(inv.totalProfit || 0).toFixed(2)}</td>}
-                      <td>{new Date(inv.created_at).toLocaleString()}</td>
-                    </tr>
-                  );
-                })}
-                {getFilteredInvoices().length===0 && (
+            <div className="table-container">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={canViewProfit() ? "9" : "8"} style={{textAlign:'center',padding:'60px 20px'}}>
-                      <div style={{fontSize:'48px',marginBottom:'16px'}}>🧾</div>
-                      <div style={{fontSize:'18px',color:'#666',marginBottom:'8px',fontWeight:'500'}}>
-                        {invoiceDateFilter !== 'all' ? 'No invoices found for selected date range' : 'No sales yet'}
-                      </div>
-                      <div style={{fontSize:'14px',color:'#999'}}>
-                        {invoiceDateFilter !== 'all' ? 'Try selecting a different date range' : 'Make your first sale to see invoices here'}
-                      </div>
-                    </td>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Payment</th>
+                    <th>Subtotal</th>
+                    <th>Discount</th>
+                    <th>GST</th>
+                    <th>Total</th>
+                    {canViewProfit() && <th>Profit</th>}
+                    <th>Date</th>
+                    <th>Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {getFilteredInvoices().map(inv => {
+                    const subtotal = inv.subtotal || 0;
+                    const discountPercent = inv.discountPercent || inv.discountValue || 0;
+                    const discountAmount = inv.discountAmount || 0;
+                    const taxRate = inv.taxRate || 0;
+                    const taxAmount = inv.taxAmount || 0;
+                    
+                    return (
+                      <tr key={inv.id} className="table-row-hover fade-in">
+                        <td style={{fontWeight: 'bold', color: '#5865f2'}}>#{inv.id}</td>
+                        <td>{inv.customer_name || 'Walk-in Customer'}</td>
+                        <td>
+                          <span style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            background: inv.paymentMode === 'Cash' ? '#e8f5e9' : inv.paymentMode === 'UPI' ? '#e3f2fd' : inv.paymentMode === 'Card' ? '#fff3e0' : '#f3e5f5',
+                            color: inv.paymentMode === 'Cash' ? '#2e7d32' : inv.paymentMode === 'UPI' ? '#1976d2' : inv.paymentMode === 'Card' ? '#f57c00' : '#7b1fa2'
+                          }}>
+                            {inv.paymentMode || 'Cash'}
+                          </span>
+                        </td>
+                        <td>₹{subtotal.toFixed(2)}</td>
+                        <td>{discountPercent}% {discountAmount > 0 ? `(-₹${discountAmount.toFixed(2)})` : ''}</td>
+                        <td>{taxRate}% (₹{taxAmount.toFixed(2)})</td>
+                        <td style={{fontWeight: 'bold', fontSize: '16px'}}>₹{inv.total.toFixed(2)}</td>
+                        {canViewProfit() && <td style={{color: '#10b981', fontWeight: 'bold'}}>₹{(inv.totalProfit || 0).toFixed(2)}</td>}
+                        <td>{new Date(inv.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <button 
+                            onClick={() => exportInvoiceToPDF(inv)}
+                            className="btn-secondary"
+                            style={{padding: '5px 12px', fontSize: '12px'}}
+                          >
+                            📄 PDF
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {getFilteredInvoices().length === 0 && (
+                    <tr>
+                      <td colSpan={canViewProfit() ? "10" : "9"} style={{textAlign:'center',padding:'60px 20px'}}>
+                        <div style={{fontSize:'64px',marginBottom:'16px'}}>💳</div>
+                        <div style={{fontSize:'20px',color:'#666',marginBottom:'8px',fontWeight:'600'}}>
+                          {invoiceDateFilter !== 'all' ? 'No transactions found' : 'No transactions yet'}
+                        </div>
+                        <div style={{fontSize:'14px',color:'#999'}}>
+                          {invoiceDateFilter !== 'all' ? 'Try selecting a different date range' : 'Complete your first sale to see transactions here'}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -3919,46 +4268,51 @@ export default function App(){
             
             {/* Download Reports Section */}
             <div className="download-reports-section">
-              <h3>📥 Download Reports & Backups</h3>
-              <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV format for Excel, Google Sheets, or accounting software</p>
+              <h3>📥 Download Reports</h3>
+              <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV or PDF format</p>
               <div className="download-buttons-grid">
                 <button onClick={downloadSalesReport} className="download-btn sales">
                   <span className="btn-icon">📊</span>
                   <div>
-                    <strong>Sales Report</strong>
+                    <strong>Sales Report (CSV)</strong>
                     <small>All invoices with profit details</small>
+                  </div>
+                </button>
+                <button onClick={exportTransactionsToPDF} className="download-btn sales">
+                  <span className="btn-icon">📄</span>
+                  <div>
+                    <strong>Transactions (PDF)</strong>
+                    <small>Professional PDF report</small>
                   </div>
                 </button>
                 <button onClick={downloadInventoryReport} className="download-btn inventory">
                   <span className="btn-icon">📦</span>
                   <div>
-                    <strong>Inventory Report</strong>
-                    <small>Stock levels, pricing & profit margins</small>
+                    <strong>Inventory Report (CSV)</strong>
+                    <small>Stock levels & pricing</small>
+                  </div>
+                </button>
+                <button onClick={exportProductsToPDF} className="download-btn inventory">
+                  <span className="btn-icon">�</span>
+                  <div>
+                    <strong>Products (PDF)</strong>
+                    <small>Complete product list</small>
                   </div>
                 </button>
                 <button onClick={downloadCustomerReport} className="download-btn customers">
-                  <span className="btn-icon">👥</span>
+                  <span className="btn-icon">�</span>
                   <div>
                     <strong>Customer Report</strong>
-                    <small>Customer database with GST details</small>
+                    <small>Customer database</small>
                   </div>
                 </button>
                 <button onClick={downloadProfitReport} className="download-btn profit">
-                  <span className="btn-icon">💰</span>
+                  <span className="btn-icon">�</span>
                   <div>
                     <strong>Profit Analysis</strong>
-                    <small>Complete financial overview</small>
+                    <small>Financial overview</small>
                   </div>
                 </button>
-                {isAdmin && (
-                  <button onClick={() => window.location.href = API('/api/backup/json')} className="download-btn" style={{background:'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
-                    <span className="btn-icon">💾</span>
-                    <div>
-                      <strong>Full Backup (JSON)</strong>
-                      <small>Complete database backup</small>
-                    </div>
-                  </button>
-                )}
               </div>
             </div>
 
@@ -3981,6 +4335,163 @@ export default function App(){
                 <p>Total Customers: {stats.totalCustomers || 0}</p>
                 <p>Today's Sales: ₹{stats.todaySales || 0}</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Expenses Tab */}
+        {tab==='expenses' && (
+          <div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+              <h2>💰 Expense Tracking</h2>
+              <button onClick={() => setShowAddExpense(true)} className="btn-primary">
+                + Add Expense
+              </button>
+            </div>
+
+            {/* Expense Summary Cards */}
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px'}}>
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Total Expenses</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>
+                  ₹{expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0).toFixed(1)}
+                </div>
+              </div>
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Total Revenue</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>
+                  ₹{(stats.totalRevenue || 0).toFixed(1)}
+                </div>
+              </div>
+              <div className="stat-card" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white'}}>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Net Profit</div>
+                <div style={{fontSize: '32px', fontWeight: 'bold'}}>
+                  ₹{((stats.totalRevenue || 0) - expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)).toFixed(1)}
+                </div>
+              </div>
+            </div>
+
+            {/* Expenses Table */}
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Added By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map(exp => (
+                    <tr key={exp.id} className="table-row-hover fade-in">
+                      <td>{new Date(exp.date).toLocaleDateString()}</td>
+                      <td>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          background: '#f3e5f5',
+                          color: '#7b1fa2'
+                        }}>
+                          {exp.category}
+                        </span>
+                      </td>
+                      <td>{exp.description}</td>
+                      <td style={{fontWeight: 'bold', color: '#ff6b6b'}}>-₹{exp.amount.toFixed(2)}</td>
+                      <td>{exp.username || 'Admin'}</td>
+                      <td>
+                        {canDelete() && (
+                          <button 
+                            onClick={() => deleteExpense(exp.id)}
+                            className="btn-danger"
+                            style={{padding: '5px 12px', fontSize: '12px'}}
+                          >
+                            🗑️ Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {expenses.length === 0 && (
+                    <tr>
+                      <td colSpan="6" style={{textAlign:'center',padding:'60px 20px'}}>
+                        <div style={{fontSize:'64px',marginBottom:'16px'}}>💰</div>
+                        <div style={{fontSize:'20px',color:'#666',marginBottom:'8px',fontWeight:'600'}}>
+                          No expenses recorded
+                        </div>
+                        <div style={{fontSize:'14px',color:'#999'}}>
+                          Start tracking your business expenses
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Backup & Restore Tab */}
+        {tab==='backup' && (
+          <div>
+            <h2>💾 Backup & Restore</h2>
+            <p style={{color:'#666',marginBottom:'30px'}}>
+              Securely backup and restore your entire inventory database
+            </p>
+
+            {/* Backup Section */}
+            <div className="card" style={{marginBottom: '30px', padding: '30px'}}>
+              <h3 style={{marginBottom: '15px'}}>📤 Create Backup</h3>
+              <p style={{color: '#666', marginBottom: '20px'}}>
+                Download a complete backup of all products, customers, transactions, and expenses.
+              </p>
+              <button onClick={downloadBackup} className="btn-primary" style={{padding: '12px 24px'}}>
+                💾 Download Backup (JSON)
+              </button>
+            </div>
+
+            {/* Restore Section */}
+            <div className="card" style={{padding: '30px'}}>
+              <h3 style={{marginBottom: '15px'}}>📥 Restore from Backup</h3>
+              <p style={{color: '#666', marginBottom: '20px'}}>
+                Restore data from a previously downloaded backup file. This will replace current data.
+              </p>
+              <input 
+                type="file" 
+                accept=".json"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) restoreBackup(file);
+                }}
+                style={{
+                  padding: '10px',
+                  border: '2px dashed #ddd',
+                  borderRadius: '8px',
+                  width: '100%',
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+
+            {/* Warning Section */}
+            <div style={{
+              marginTop: '30px',
+              padding: '20px',
+              background: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '8px'
+            }}>
+              <h4 style={{marginBottom: '10px', color: '#856404'}}>⚠️ Important Notes</h4>
+              <ul style={{color: '#856404', paddingLeft: '20px'}}>
+                <li>Backups contain all your business data - store them securely</li>
+                <li>Restoring a backup will replace current data - create a backup first if needed</li>
+                <li>Regular backups are recommended (daily/weekly)</li>
+                <li>Keep multiple backup versions in different locations</li>
+              </ul>
             </div>
           </div>
         )}
@@ -4387,6 +4898,73 @@ export default function App(){
         </div>
       )}
 
+      {/* Add Expense Modal */}
+      {showAddExpense && (
+        <div className="modal-overlay" onClick={() => setShowAddExpense(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>💰 Add New Expense</h2>
+            <form onSubmit={(e) => {e.preventDefault(); addExpense();}}>
+              <div className="form-group">
+                <label>Category</label>
+                <select 
+                  value={expenseCategory} 
+                  onChange={(e) => setExpenseCategory(e.target.value)}
+                  required
+                >
+                  <option value="">Select category...</option>
+                  <option value="Rent">Rent</option>
+                  <option value="Utilities">Utilities (Electricity, Water)</option>
+                  <option value="Salaries">Salaries & Wages</option>
+                  <option value="Inventory">Inventory Purchase</option>
+                  <option value="Marketing">Marketing & Advertising</option>
+                  <option value="Transportation">Transportation</option>
+                  <option value="Maintenance">Maintenance & Repairs</option>
+                  <option value="Office Supplies">Office Supplies</option>
+                  <option value="Insurance">Insurance</option>
+                  <option value="Taxes">Taxes & Fees</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Amount (₹)</label>
+                <input 
+                  type="number" 
+                  value={expenseAmount} 
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea 
+                  value={expenseDescription} 
+                  onChange={(e) => setExpenseDescription(e.target.value)}
+                  required
+                  placeholder="Brief description of the expense"
+                  rows="3"
+                  style={{width: '100%', padding: '8px', borderRadius: '5px', border: '1px solid #ddd'}}
+                />
+              </div>
+              <div className="form-group">
+                <label>Date</label>
+                <input 
+                  type="date" 
+                  value={expenseDate} 
+                  onChange={(e) => setExpenseDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary">Add Expense</button>
+                <button type="button" onClick={() => setShowAddExpense(false)} className="btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
 
       {/* Customer Purchase History Modal */}
