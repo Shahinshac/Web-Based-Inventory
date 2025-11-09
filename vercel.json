@@ -3,13 +3,10 @@
   "outputDirectory": "web-app/client/dist",
   "installCommand": "cd web-app/client && npm install",
   "framework": "vite",
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
