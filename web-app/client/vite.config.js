@@ -11,6 +11,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+    chunkSizeWarningLimit: 1000, // Increase to 1000 kB to avoid warnings
     rollupOptions: {
       output: {
         manualChunks: undefined
