@@ -1522,78 +1522,178 @@ export default function App(){
     }
   }
 
-  // Download Reports Functions
-  function downloadCSV(data, filename) {
-    const csvContent = data.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-  }
-
+  // Download Reports Functions - All in PDF Format
   function downloadSalesReport() {
-    const headers = ['Invoice #', 'Date', 'Customer', 'Items', 'Total', 'Payment Mode', 'Profit']
-    const rows = invoices.map(inv => [
-      inv.billNumber || inv.id,
-      new Date(inv.date).toLocaleDateString(),
-      inv.customerName || 'Walk-in',
-      inv.items?.length || 0,
-      `₹${inv.grandTotal || inv.total}`,
-      inv.paymentMode || 'N/A',
-      `₹${inv.totalProfit || 0}`
-    ])
-    downloadCSV([headers, ...rows], 'Sales_Report')
-    alert('✅ Sales Report Downloaded!')
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Sales Report', 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    doc.text(`Total Transactions: ${invoices.length}`, 105, 35, { align: 'center' });
+    
+    // Table data
+    const tableData = invoices.map(inv => [
+      `#${inv.billNumber || inv.id}`,
+      new Date(inv.created_at || inv.date).toLocaleDateString(),
+      inv.customer_name || inv.customerName || 'Walk-in',
+      (inv.items?.length || 0).toString(),
+      `₹${(inv.total || inv.grandTotal || 0).toFixed(2)}`,
+      inv.paymentMode || 'Cash',
+      `₹${(inv.totalProfit || 0).toFixed(2)}`
+    ]);
+    
+    doc.autoTable({
+      startY: 45,
+      head: [['Invoice #', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Profit']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [41, 128, 185] },
+      styles: { fontSize: 8 }
+    });
+    
+    // Summary
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
+    const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, finalY);
+    doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, finalY + 8);
+    
+    doc.save(`Sales-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('✅ Sales Report PDF downloaded!', 'success');
   }
 
   function downloadInventoryReport() {
-    const headers = ['Product ID', 'Name', 'Stock', 'Price', 'Cost Price', 'Profit/Unit', 'HSN Code', 'Status']
-    const rows = products.map(prod => [
-      prod.id,
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Inventory Report', 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    doc.text(`Total Products: ${products.length}`, 105, 35, { align: 'center' });
+    
+    // Table data
+    const tableData = products.map((prod, index) => [
+      (index + 1).toString(),
       prod.name,
-      prod.quantity,
-      `₹${prod.price}`,
-      `₹${prod.costPrice || 0}`,
+      prod.quantity.toString(),
+      `₹${prod.price.toFixed(2)}`,
+      `₹${(prod.costPrice || 0).toFixed(2)}`,
       `₹${(prod.price - (prod.costPrice || 0)).toFixed(2)}`,
       prod.hsnCode || 'N/A',
-      prod.quantity <= (prod.minStock || 10) ? 'Low Stock' : 'In Stock'
-    ])
-    downloadCSV([headers, ...rows], 'Inventory_Report')
-    alert('✅ Inventory Report Downloaded!')
+      prod.quantity === 0 ? 'Out of Stock' : prod.quantity <= (prod.minStock || 10) ? 'Low Stock' : 'In Stock'
+    ]);
+    
+    doc.autoTable({
+      startY: 45,
+      head: [['#', 'Name', 'Stock', 'Price', 'Cost', 'Profit/Unit', 'HSN', 'Status']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [46, 204, 113] },
+      styles: { fontSize: 7 }
+    });
+    
+    // Summary
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const lowStock = products.filter(p => p.quantity > 0 && p.quantity <= (p.minStock || 10)).length;
+    const outOfStock = products.filter(p => p.quantity === 0).length;
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Low Stock Items: ${lowStock}`, 20, finalY);
+    doc.text(`Out of Stock Items: ${outOfStock}`, 20, finalY + 7);
+    
+    doc.save(`Inventory-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('✅ Inventory Report PDF downloaded!', 'success');
   }
 
   function downloadCustomerReport() {
-    const headers = ['Customer ID', 'Name', 'Phone', 'Address', 'GSTIN']
-    const rows = customers.map(cust => [
-      cust.id,
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Customer Report', 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    doc.text(`Total Customers: ${customers.length}`, 105, 35, { align: 'center' });
+    
+    // Table data
+    const tableData = customers.map((cust, index) => [
+      (index + 1).toString(),
       cust.name,
       cust.phone,
       cust.address || 'N/A',
       cust.gstin || 'N/A'
-    ])
-    downloadCSV([headers, ...rows], 'Customer_Report')
-    alert('✅ Customer Report Downloaded!')
+    ]);
+    
+    doc.autoTable({
+      startY: 45,
+      head: [['#', 'Name', 'Phone', 'Address', 'GSTIN']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [155, 89, 182] },
+      styles: { fontSize: 9 }
+    });
+    
+    doc.save(`Customer-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('✅ Customer Report PDF downloaded!', 'success');
   }
 
   function downloadProfitReport() {
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.grandTotal || inv.total || 0), 0)
-    const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0)
-    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0
+    const doc = new jsPDF();
     
-    const headers = ['Metric', 'Value']
-    const rows = [
+    // Header
+    doc.setFontSize(20);
+    doc.text('Profit Analysis Report', 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    
+    // Calculate metrics
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
+    const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
+    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
+    const avgProfitPerSale = invoices.length > 0 ? (totalProfit / invoices.length).toFixed(2) : 0;
+    const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity <= (p.minStock || 10)).length;
+    
+    // Table data
+    const tableData = [
       ['Total Revenue', `₹${totalRevenue.toFixed(2)}`],
       ['Total Profit', `₹${totalProfit.toFixed(2)}`],
       ['Profit Margin', `${profitMargin}%`],
-      ['Total Invoices', invoices.length],
-      ['Average Profit/Sale', `₹${(totalProfit / (invoices.length || 1)).toFixed(2)}`],
-      ['Total Products', products.length],
-      ['Total Customers', customers.length],
-      ['Low Stock Items', products.filter(p => p.quantity <= (p.minStock || 10)).length],
-    ]
-    downloadCSV([headers, ...rows], 'Profit_Analysis_Report')
-    alert('✅ Profit Analysis Report Downloaded!')
+      ['Total Invoices', invoices.length.toString()],
+      ['Average Profit/Sale', `₹${avgProfitPerSale}`],
+      ['Total Products', products.length.toString()],
+      ['Total Customers', customers.length.toString()],
+      ['Low Stock Items', lowStockItems.toString()],
+      ['Out of Stock Items', products.filter(p => p.quantity === 0).length.toString()]
+    ];
+    
+    doc.autoTable({
+      startY: 40,
+      head: [['Metric', 'Value']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [231, 76, 60], fontSize: 12 },
+      styles: { fontSize: 11 },
+      columnStyles: {
+        0: { fontStyle: 'bold', fillColor: [245, 245, 245] }
+      }
+    });
+    
+    // Add visual emphasis
+    const finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(46, 204, 113);
+    doc.text(`Profit Margin: ${profitMargin}%`, 105, finalY, { align: 'center' });
+    
+    doc.save(`Profit-Analysis-${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('✅ Profit Analysis PDF downloaded!', 'success');
   }
 
   function addToCart(p){
@@ -3466,7 +3566,7 @@ export default function App(){
                           LOW
                         </div>
                       )}
-                      {p.photo && (
+                      {(p.photo || p.photoUrl) && (
                         <div style={{
                           width: '100%',
                           height: '120px',
@@ -3479,7 +3579,7 @@ export default function App(){
                           justifyContent: 'center'
                         }}>
                           <img 
-                            src={p.photo.startsWith('http') ? p.photo : API(p.photo)} 
+                            src={(p.photo || p.photoUrl).startsWith('http') ? (p.photo || p.photoUrl) : API(p.photo || p.photoUrl)} 
                             alt={p.name}
                             style={{
                               width: '100%',
@@ -3487,6 +3587,7 @@ export default function App(){
                               objectFit: 'contain'
                             }}
                             onError={(e) => {
+                              console.error('Image load error for product:', p.name, 'URL:', e.target.src);
                               e.target.style.display = 'none';
                             }}
                           />
@@ -3854,9 +3955,9 @@ export default function App(){
                   <tr key={prod.id} className="fade-in table-row-hover">
                     <td>
                       <div style={{position:'relative',width:'60px',height:'60px'}}>
-                        {prod.photo ? (
+                        {(prod.photo || prod.photoUrl) ? (
                           <img 
-                            src={prod.photo.startsWith('http') ? prod.photo : API(prod.photo)} 
+                            src={(prod.photo || prod.photoUrl).startsWith('http') ? (prod.photo || prod.photoUrl) : API(prod.photo || prod.photoUrl)} 
                             alt={prod.name}
                             style={{
                               width:'60px',
@@ -3867,8 +3968,12 @@ export default function App(){
                               background:'#f8f9fa'
                             }}
                             onError={(e) => {
+                              console.error('Image load error for product:', prod.name, 'URL:', e.target.src);
                               e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div style="width:60px;height:60px;background:linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);borderRadius:8px;display:flex;alignItems:center;justifyContent:center;fontSize:24px;color:#9ca3af;">📦</div>';
+                              const fallback = document.createElement('div');
+                              fallback.style.cssText = 'width:60px;height:60px;background:linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#9ca3af;';
+                              fallback.innerHTML = '📦';
+                              e.target.parentElement.replaceChild(fallback, e.target);
                             }}
                           />
                         ) : (
@@ -4399,15 +4504,18 @@ export default function App(){
                     <th>Date</th>
                     <th>Customer</th>
                     <th>Items</th>
+                    <th>Subtotal</th>
+                    <th>Discount</th>
+                    <th>GST</th>
+                    <th>Total</th>
                     <th>Payment</th>
-                    <th>Amount</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getFilteredInvoices().length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{textAlign:'center',padding:'40px',color:'#999'}}>
+                      <td colSpan="10" style={{textAlign:'center',padding:'40px',color:'#999'}}>
                         No invoices found for selected period
                       </td>
                     </tr>
@@ -4418,6 +4526,22 @@ export default function App(){
                         <td>{new Date(inv.created_at || inv.date).toLocaleDateString()}</td>
                         <td>{inv.customer_name || inv.customerName || 'Walk-in'}</td>
                         <td>{inv.items?.length || 0} items</td>
+                        <td>₹{(inv.subtotal || 0).toFixed(2)}</td>
+                        <td>
+                          <span style={{color:'#e74c3c',fontSize:'13px'}}>
+                            -{inv.discountPercent || 0}%
+                            <br/>
+                            <small style={{color:'#888'}}>₹{(inv.discountAmount || 0).toFixed(2)}</small>
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{color:'#27ae60',fontSize:'13px'}}>
+                            +{inv.taxRate || 0}%
+                            <br/>
+                            <small style={{color:'#888'}}>₹{(inv.taxAmount || 0).toFixed(2)}</small>
+                          </span>
+                        </td>
+                        <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(2)}</strong></td>
                         <td>
                           <span className={`badge ${
                             inv.paymentMode === 'Cash' ? 'success' : 
@@ -4427,7 +4551,6 @@ export default function App(){
                             {inv.paymentMode || 'Cash'}
                           </span>
                         </td>
-                        <td><strong>₹{(inv.total || inv.grandTotal || 0).toFixed(2)}</strong></td>
                         <td>
                           <button 
                             onClick={() => exportInvoiceToPDF(inv)}
