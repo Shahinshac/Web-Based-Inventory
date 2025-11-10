@@ -38,7 +38,7 @@ A modern, full-stack web application for inventory and billing management with r
 ## 🛠️ Installation
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - MongoDB (local or Atlas)
 - npm or yarn
 

@@ -36,11 +36,11 @@ async function createIndexes(database) {
     await database.collection('customers').createIndex({ phone: 1 }, { sparse: true });
     await database.collection('customers').createIndex({ email: 1 }, { sparse: true });
     
-    // Invoices collection indexes
-    await database.collection('invoices').createIndex({ created_at: -1 }); // Most recent first
-    await database.collection('invoices').createIndex({ customer_id: 1 });
-    await database.collection('invoices').createIndex({ total: -1 });
-    await database.collection('invoices').createIndex({ 'items.productId': 1 });
+    // Bills (invoices) collection indexes
+    await database.collection('bills').createIndex({ billDate: -1 }); // Most recent first
+    await database.collection('bills').createIndex({ customerId: 1 });
+    await database.collection('bills').createIndex({ grandTotal: -1 });
+    await database.collection('bills').createIndex({ 'items.productId': 1 });
     
     // Users collection indexes
     await database.collection('users').createIndex({ username: 1 }, { unique: true });

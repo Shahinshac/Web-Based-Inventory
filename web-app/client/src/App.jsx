@@ -12,6 +12,13 @@ const API = (path) => {
   return baseUrl + path
 }
 
+const buildImageSrc = (pathLike, cacheKey) => {
+  if (!pathLike) return null;
+  const src = String(pathLike).startsWith('http') ? pathLike : API(pathLike);
+  const key = cacheKey ? `?v=${encodeURIComponent(cacheKey)}` : '';
+  return src + key;
+}
+
 export default function App(){
   // PWA and Offline functionality
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -130,7 +137,7 @@ export default function App(){
     lowStock: [],
     revenueSummary: {}
   });
-  const [analyticsDateRange, setAnalyticsDateRange] = useState(30); // days
+  const [analyticsDateRange, setAnalyticsDateRange] = useState(1); // days (today by default)
   
   // Admin password from secure environment variable
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'defaultpass123'
@@ -1672,13 +1679,28 @@ export default function App(){
         discountValue: discount,
         taxRate: GST_PERCENT,
         taxAmount: taxAmount,
-        items: cart,
+        // Ensure each item has required fields
+        items: cart.map(it => ({
+          productId: it.productId,
+          name: it.name,
+          price: it.price,
+          costPrice: it.costPrice || 0,
+          quantity: it.quantity
+        })),
         discountPercent: discount,
         customerState: 'Same',
         paymentMode: splitPayment ? PAYMENT_MODES.SPLIT : paymentMode,
         cashAmount: splitPayment ? (parseFloat(cashAmount) || 0) : 0,
         upiAmount: splitPayment ? (parseFloat(upiAmount) || 0) : 0,
         cardAmount: splitPayment ? (parseFloat(cardAmount) || 0) : 0,
+        // New payments array (preferred by backend)
+        payments: splitPayment 
+          ? [
+              ...(parseFloat(cashAmount) > 0 ? [{ method: 'CASH', amount: parseFloat(cashAmount) }] : []),
+              ...(parseFloat(upiAmount) > 0 ? [{ method: 'UPI', amount: parseFloat(upiAmount) }] : []),
+              ...(parseFloat(cardAmount) > 0 ? [{ method: 'CARD', amount: parseFloat(cardAmount) }] : []),
+            ]
+          : [{ method: String(paymentMode || PAYMENT_MODES.CASH).toUpperCase(), amount: grandTotal }],
         userId: currentUser?.id || null,
         username: isAdmin ? 'admin' : currentUser?.username,
         salesperson: salespersonName || (isAdmin ? 'admin' : currentUser?.username || 'Cashier')
@@ -1695,12 +1717,14 @@ export default function App(){
             billNumber: j.billId,
             customerName: selectedCustomer?.name || 'Walk-in Customer',
             customerPhone: selectedCustomer?.phone || '',
-            paymentMode: paymentMode,
+            paymentMode: j.paymentMode || paymentMode,
+            payments: j.payments || payload.payments,
+            paymentSummary: j.paymentSummary || (splitPayment ? 'Multi-method payment' : String(paymentMode).toUpperCase()),
             subtotal: subtotal,
             discountAmount: discountAmount,
             discountPercent: discount,
             discountValue: discount,
-            taxRate: taxRate,
+            taxRate: GST_PERCENT,
             taxAmount: taxAmount,
             total: grandTotal,
             salesperson: salespersonName || (isAdmin ? 'admin' : currentUser?.username || 'Cashier'),
@@ -1820,9 +1844,26 @@ export default function App(){
     const taxRate = lastBill.taxRate;
     const grandTotal = lastBill.total;
     
-    // Check if split payment
-    const isSplitPayment = paymentMode === 'split' || paymentMode === 'Split';
-    const splitDetails = lastBill.splitPaymentDetails;
+    // Build payments array from lastBill (preferred) or legacy fields
+    const payments = Array.isArray(lastBill.payments) && lastBill.payments.length > 0
+      ? lastBill.payments.map(p => ({ method: String(p.method || 'CASH').toUpperCase(), amount: Number(p.amount) || 0 }))
+      : (() => {
+          const sp = lastBill.splitPaymentDetails;
+          if (sp && (sp.cashAmount > 0 || sp.upiAmount > 0 || sp.cardAmount > 0)) {
+            const arr = [];
+            if (sp.cashAmount > 0) arr.push({ method: 'CASH', amount: Number(sp.cashAmount) || 0 });
+            if (sp.upiAmount > 0) arr.push({ method: 'UPI', amount: Number(sp.upiAmount) || 0 });
+            if (sp.cardAmount > 0) arr.push({ method: 'CARD', amount: Number(sp.cardAmount) || 0 });
+            return arr;
+          }
+          const m = String(lastBill.paymentMode || 'cash').toUpperCase();
+          const single = (m === 'UPI' || m === 'CARD') ? m : 'CASH';
+          return [{ method: single, amount: Number(lastBill.total || 0) }];
+        })();
+    const isSplitPayment = payments.length > 1;
+    const paymentHeaderText = isSplitPayment
+      ? payments.map(p => `• ${p.method} ₹${p.amount.toFixed(0)}`).join(' ')
+      : payments[0] ? `${payments[0].method}` : 'CASH';
     
     const billHTML = `
       <!DOCTYPE html>
@@ -2276,31 +2317,20 @@ export default function App(){
             <div class="invoice-meta">
               <div class="meta-block" style="flex: 1;">
                 <h3>📋 Bill To</h3>
-                ${selectedCustomer ? `
-                  <div class="meta-row">
-                    <span class="meta-label">Name:</span>
-                    <span class="meta-value">${selectedCustomer.name}</span>
-                  </div>
-                  <div class="meta-row">
-                    <span class="meta-label">Phone:</span>
-                    <span class="meta-value">${selectedCustomer.phone || 'N/A'}</span>
-                  </div>
-                  ${selectedCustomer.address ? `
-                  <div class="meta-row">
-                    <span class="meta-label">Address:</span>
-                    <span class="meta-value">${selectedCustomer.address}</span>
-                  </div>` : ''}
-                  ${selectedCustomer.gstin ? `
-                  <div class="meta-row">
-                    <span class="meta-label">GSTIN:</span>
-                    <span class="meta-value">${selectedCustomer.gstin}</span>
-                  </div>` : ''}
-                ` : `
-                  <div class="meta-row">
-                    <span class="meta-label">Customer:</span>
-                    <span class="meta-value">Walk-in Customer</span>
-                  </div>
-                `}
+                <div class="meta-row">
+                  <span class="meta-label">Name:</span>
+                  <span class="meta-value">${lastBill.customerName || 'Walk-in Customer'}</span>
+                </div>
+                ${lastBill.customerPhone ? `
+                <div class="meta-row">
+                  <span class="meta-label">Phone:</span>
+                  <span class="meta-value">${lastBill.customerPhone}</span>
+                </div>` : ''}
+                ${lastBill.customerAddress ? `
+                <div class="meta-row">
+                  <span class="meta-label">Address:</span>
+                  <span class="meta-value">${lastBill.customerAddress}</span>
+                </div>` : ''}
               </div>
               
               <div class="meta-block" style="flex: 1;">
@@ -2323,7 +2353,7 @@ export default function App(){
                 </div>
                 <div class="meta-row">
                   <span class="meta-label">Payment:</span>
-                  <span class="meta-value">${isSplitPayment ? 'Split Payment' : paymentMode.toUpperCase()}</span>
+                  <span class="meta-value">${paymentHeaderText}</span>
                 </div>
               </div>
             </div>
@@ -2345,15 +2375,19 @@ export default function App(){
                   </thead>
                   <tbody>
                     ${lastBill.items.map((item, idx) => {
-                      const product = products.find(p => p._id === item.productId);
+                      const product = products.find(p => p._id === (item.productId || item.productId?._id));
+                      const name = item.productName || item.name || product?.name || 'Item';
+                      const unitPrice = item.unitPrice !== undefined ? item.unitPrice : (item.price !== undefined ? item.price : 0);
+                      const amount = item.lineSubtotal !== undefined ? item.lineSubtotal : (unitPrice * (item.quantity || 0));
+                      const hsn = item.hsnCode || product?.hsnCode || '9999';
                       return `
                         <tr>
                           <td class="text-center font-medium">${idx + 1}</td>
-                          <td class="font-semibold">${item.name}</td>
-                          <td class="text-center">${product?.hsnCode || 'N/A'}</td>
+                          <td class="font-semibold">${name}</td>
+                          <td class="text-center">${hsn}</td>
                           <td class="text-center font-medium">${item.quantity}</td>
-                          <td class="text-right">${fmt1(item.price)}</td>
-                          <td class="text-right font-semibold">${fmt1(item.price * item.quantity)}</td>
+                          <td class="text-right">${fmt1(unitPrice)}</td>
+                          <td class="text-right font-semibold">${fmt1(amount)}</td>
                         </tr>
                       `;
                     }).join('')}
@@ -2395,47 +2429,8 @@ export default function App(){
                 <span>${numberToWords(Math.round(grandTotal))} Rupees Only</span>
               </div>
               
-              <!-- Payment Details -->
-              ${isSplitPayment && splitDetails ? `
-                <div class="payment-details">
-                  <h4>💰 Payment Breakdown (Split Payment)</h4>
-                  <div class="payment-split">
-                    ${splitDetails.cashAmount > 0 ? `
-                      <div class="payment-item">
-                        <div class="payment-method">💵 Cash</div>
-                        <div class="payment-amount">₹${fmt1(splitDetails.cashAmount)}</div>
-                      </div>
-                    ` : ''}
-                    ${splitDetails.upiAmount > 0 ? `
-                      <div class="payment-item">
-                        <div class="payment-method">📱 UPI</div>
-                        <div class="payment-amount">₹${fmt1(splitDetails.upiAmount)}</div>
-                      </div>
-                    ` : ''}
-                    ${splitDetails.cardAmount > 0 ? `
-                      <div class="payment-item">
-                        <div class="payment-method">💳 Card</div>
-                        <div class="payment-amount">₹${fmt1(splitDetails.cardAmount)}</div>
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              ` : `
-                <div class="payment-details">
-                  <h4>💰 Payment Details</h4>
-                  <div class="payment-split">
-                    <div class="payment-item">
-                      <div class="payment-method">${
-                        paymentMode === 'cash' || paymentMode === 'Cash' ? '💵 Cash' :
-                        paymentMode === 'upi' || paymentMode === 'UPI' ? '📱 UPI' :
-                        paymentMode === 'card' || paymentMode === 'Card' ? '💳 Card' :
-                        '💵 ' + paymentMode
-                      }</div>
-                      <div class="payment-amount">₹${fmt1(grandTotal)}</div>
-                    </div>
-                  </div>
-                </div>
-              `}
+              <!-- Payment details are included in header; bottom section removed per guide -->
+              ${''}
               
               <!-- Terms & Conditions -->
               <div class="terms-section">
@@ -3499,7 +3494,7 @@ export default function App(){
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📊 Inventory</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>👥 Customers</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={tab==='invoices'?'active':''}>🧾 Invoices</button>
-          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>� Analytics</button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(1);}}} className={tab==='analytics'?'active':''}>� Analytics</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>� Reports</button>
           {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👤 Users</button>}
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
@@ -3811,7 +3806,7 @@ export default function App(){
                           justifyContent: 'center'
                         }}>
                           <img 
-                            src={(p.photo || p.photoUrl).startsWith('http') ? (p.photo || p.photoUrl) : API(p.photo || p.photoUrl)} 
+                            src={buildImageSrc(p.photo || p.photoUrl, p.id || p._id || p.name)} 
                             alt={p.name}
                             style={{
                               width: '100%',
@@ -4236,7 +4231,7 @@ export default function App(){
                       <div style={{position:'relative',width:'60px',height:'60px'}}>
                         {(prod.photo || prod.photoUrl) ? (
                           <img 
-                            src={(prod.photo || prod.photoUrl).startsWith('http') ? (prod.photo || prod.photoUrl) : API(prod.photo || prod.photoUrl)} 
+                            src={buildImageSrc(prod.photo || prod.photoUrl, prod.id || prod._id || prod.name)} 
                             alt={prod.name}
                             style={{
                               width:'60px',
@@ -4477,6 +4472,7 @@ export default function App(){
                   }}
                   style={{padding:'8px',borderRadius:'6px',border:'1px solid #ddd'}}
                 >
+                  <option value={1}>Today</option>
                   <option value={7}>Last 7 Days</option>
                   <option value={30}>Last 30 Days</option>
                   <option value={90}>Last 90 Days</option>
@@ -4782,39 +4778,57 @@ export default function App(){
                         </td>
                         <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(1)}</strong></td>
                         <td>
-                          {inv.paymentMode === 'split' || inv.paymentMode === 'Split' ? (
-                            <div style={{fontSize:'12px',lineHeight:'1.4'}}>
-                              <div style={{fontWeight:'600',color:'#6366f1',marginBottom:'4px'}}>
-                                💰 Split Payment
-                              </div>
-                              {inv.splitPaymentDetails ? (
-                                <div style={{color:'#64748b'}}>
-                                  {inv.splitPaymentDetails.cashAmount > 0 && (
-                                    <div>💵 Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</div>
-                                  )}
-                                  {inv.splitPaymentDetails.upiAmount > 0 && (
-                                    <div>📱 UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</div>
-                                  )}
-                                  {inv.splitPaymentDetails.cardAmount > 0 && (
-                                    <div>💳 Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</div>
-                                  )}
+                          {(() => {
+                            const payments = Array.isArray(inv.payments) ? inv.payments : null;
+                            if (payments && payments.length > 0) {
+                              // New payments array rendering
+                              if (payments.length === 1) {
+                                const p = payments[0];
+                                const label = p.method === 'UPI' ? '📱 UPI' : p.method === 'CARD' ? '💳 Card' : '💵 Cash';
+                                const cls = p.method === 'UPI' ? 'primary' : p.method === 'CARD' ? 'info' : 'success';
+                                return (
+                                  <span className={`badge ${cls}`}>
+                                    {label}
+                                  </span>
+                                );
+                              }
+                              return (
+                                <div style={{fontSize:'12px',lineHeight:'1.4'}}>
+                                  <div style={{fontWeight:'600',color:'#6366f1',marginBottom:'4px'}}>💰 Split Payment</div>
+                                  <div style={{color:'#64748b'}}>
+                                    {payments.map((p, i) => {
+                                      const label = p.method === 'UPI' ? '📱 UPI' : p.method === 'CARD' ? '💳 Card' : '💵 Cash';
+                                      return <div key={i}>{label}: ₹{Number(p.amount || 0).toFixed(1)}</div>;
+                                    })}
+                                  </div>
                                 </div>
-                              ) : (
-                                <div style={{color:'#94a3b8',fontSize:'11px'}}>Details unavailable</div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className={`badge ${
-                              inv.paymentMode === 'cash' || inv.paymentMode === 'Cash' ? 'success' : 
-                              inv.paymentMode === 'upi' || inv.paymentMode === 'UPI' ? 'primary' : 
-                              'info'
-                            }`}>
-                              {inv.paymentMode === 'cash' || inv.paymentMode === 'Cash' ? '💵 Cash' :
-                               inv.paymentMode === 'upi' || inv.paymentMode === 'UPI' ? '📱 UPI' :
-                               inv.paymentMode === 'card' || inv.paymentMode === 'Card' ? '💳 Card' :
-                               inv.paymentMode || 'Cash'}
-                            </span>
-                          )}
+                              );
+                            }
+                            // Legacy splitPaymentDetails
+                            if (inv.paymentMode === 'split' || inv.paymentMode === 'Split') {
+                              if (inv.splitPaymentDetails) {
+                                return (
+                                  <div style={{fontSize:'12px',lineHeight:'1.4'}}>
+                                    <div style={{fontWeight:'600',color:'#6366f1',marginBottom:'4px'}}>💰 Split Payment</div>
+                                    <div style={{color:'#64748b'}}>
+                                      {inv.splitPaymentDetails.cashAmount > 0 && (<div>💵 Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</div>)}
+                                      {inv.splitPaymentDetails.upiAmount > 0 && (<div>📱 UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</div>)}
+                                      {inv.splitPaymentDetails.cardAmount > 0 && (<div>💳 Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</div>)}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              // Fallback: show generic split without details using total
+                              return (
+                                <span className="badge info">💰 Split Payment</span>
+                              );
+                            }
+                            // Single legacy payment mode
+                            const pm = inv.paymentMode || 'Cash';
+                            const label = pm === 'upi' || pm === 'UPI' ? '📱 UPI' : pm === 'card' || pm === 'Card' ? '💳 Card' : '💵 Cash';
+                            const cls = pm === 'upi' || pm === 'UPI' ? 'primary' : pm === 'card' || pm === 'Card' ? 'info' : 'success';
+                            return <span className={`badge ${cls}`}>{label}</span>;
+                          })()}
                         </td>
                       </tr>
                     ))

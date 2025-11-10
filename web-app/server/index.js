@@ -341,19 +341,34 @@ app.post('/api/checkout', async (req, res) => {
     const discountPercent = parseFloat(payload.discountPercent) || 0;
     const customerState = payload.customerState || 'Same'; // 'Same' or 'Other'
     
-    // Normalize payment mode to lowercase
+    // Normalize payment mode to lowercase (backward compatibility)
     let paymentMode = (payload.paymentMode || 'cash').toLowerCase();
-    
-    // Handle split payment details
+
+    // New payments array (preferred)
+    let payments = Array.isArray(payload.payments) ? payload.payments.map(p => ({
+      method: String(p.method || '').toUpperCase(),
+      amount: parseFloat(p.amount) || 0
+    })) : null;
+
+    // Handle legacy split payment fields if no payments array provided
     let splitPaymentDetails = null;
-    if (paymentMode === 'split') {
+    if (!payments && paymentMode === 'split') {
       splitPaymentDetails = {
         cashAmount: parseFloat(payload.cashAmount) || 0,
         upiAmount: parseFloat(payload.upiAmount) || 0,
         cardAmount: parseFloat(payload.cardAmount) || 0,
         totalAmount: parseFloat(payload.totalAmount) || parseFloat(payload.total) || 0
       };
+
+      // Convert legacy split to new payments array
+      payments = [];
+      if (splitPaymentDetails.cashAmount > 0) payments.push({ method: 'CASH', amount: splitPaymentDetails.cashAmount });
+      if (splitPaymentDetails.upiAmount > 0) payments.push({ method: 'UPI', amount: splitPaymentDetails.upiAmount });
+      if (splitPaymentDetails.cardAmount > 0) payments.push({ method: 'CARD', amount: splitPaymentDetails.cardAmount });
     }
+
+    // If still no payments array and paymentMode is single method, derive from total later
+    const singlePaymentMethod = (!payments || payments.length === 0) ? paymentMode.toUpperCase() : null;
     
     const userId = payload.userId || null;
     const username = sanitizeString(payload.username || 'Unknown');
@@ -400,10 +415,8 @@ app.post('/api/checkout', async (req, res) => {
       createdByUsername: username
     };
     
-    // Add split payment details if applicable
-    if (splitPaymentDetails) {
-      bill.splitPaymentDetails = splitPaymentDetails;
-    }
+    // Add legacy split details for backward compatibility (kept if originally provided)
+    if (splitPaymentDetails) bill.splitPaymentDetails = splitPaymentDetails;
 
     // Process items and update inventory
     for (const it of items) {
@@ -474,6 +487,32 @@ app.post('/api/checkout', async (req, res) => {
     bill.totalCost = parseFloat(totalCost.toFixed(2));
     bill.totalProfit = parseFloat(totalProfit.toFixed(2));
 
+    // Finalize payments array
+    if (!payments || payments.length === 0) {
+      // Derive single payment using computed grandTotal
+      payments = [{ method: (singlePaymentMethod || 'CASH').toUpperCase(), amount: bill.grandTotal }];
+    }
+
+    // Validate payment sum against computed grandTotal (tolerance 0.01)
+    const paymentSum = payments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+    if (Math.abs(paymentSum - bill.grandTotal) > 0.01) {
+      return res.status(400).json({ error: `Payment total (${paymentSum.toFixed(2)}) must match grand total (${bill.grandTotal.toFixed(2)})` });
+    }
+
+    // Normalize methods and attach to bill
+    bill.payments = payments.map(p => ({
+      method: String(p.method || 'CASH').toUpperCase(),
+      amount: parseFloat(p.amount) || 0
+    }));
+
+    // Update paymentMode for backward compatibility
+    if (bill.payments.length > 1) {
+      bill.paymentMode = 'split';
+    } else {
+      const m = bill.payments[0].method;
+      bill.paymentMode = (m === 'UPI' ? 'upi' : m === 'CARD' ? 'card' : 'cash');
+    }
+
     // Insert bill
     const result = await db.collection('bills').insertOne(bill);
     
@@ -525,12 +564,19 @@ app.post('/api/checkout', async (req, res) => {
       }
     }
     
+    // Build payment summary for response
+    const paymentSummary = bill.payments.length > 1 
+      ? 'Multi-method payment' 
+      : bill.payments[0].method;
+
     res.json({ 
       billId: result.insertedId.toString(), 
       billNumber,
       customerName: bill.customerName,
       customerPhone: bill.customerPhone,
       paymentMode: bill.paymentMode,
+      payments: bill.payments,
+      paymentSummary,
       items: bill.items.map(item => ({
         productName: item.productName,
         quantity: item.quantity,
@@ -1003,25 +1049,60 @@ app.get('/api/invoices', async (req, res) => {
       .limit(100)
       .toArray();
     
-    const formatted = bills.map(bill => ({
-      id: bill._id.toString(),
-      customer_id: bill.customerId ? bill.customerId.toString() : null,
-      customer_name: bill.customerName || 'Walk-in',
-      subtotal: bill.subtotal || 0,
-      discountPercent: bill.discountPercent || 0,
-      discountValue: bill.discountPercent || 0,
-      discountAmount: bill.discountAmount || 0,
-      afterDiscount: bill.afterDiscount || 0,
-      taxRate: (bill.cgst > 0 || bill.sgst > 0) ? 18 : (bill.igst > 0 ? 18 : 0),
-      taxAmount: bill.gstAmount || 0,
-      cgst: bill.cgst || 0,
-      sgst: bill.sgst || 0,
-      igst: bill.igst || 0,
-      total: bill.grandTotal || 0,
-      totalProfit: bill.totalProfit || 0,
-      paymentMode: bill.paymentMode || 'Cash',
-      created_at: bill.billDate
-    }));
+    const formatted = bills.map(bill => {
+      // Build payments array with backward compatibility
+      let payments = Array.isArray(bill.payments) ? bill.payments.map(p => ({
+        method: String(p.method || 'CASH').toUpperCase(),
+        amount: Number(p.amount) || 0
+      })) : null;
+
+      if (!payments || payments.length === 0) {
+        const sp = bill.splitPaymentDetails;
+        if (sp && (sp.cashAmount > 0 || sp.upiAmount > 0 || sp.cardAmount > 0)) {
+          payments = [];
+          if (sp.cashAmount > 0) payments.push({ method: 'CASH', amount: Number(sp.cashAmount) || 0 });
+          if (sp.upiAmount > 0) payments.push({ method: 'UPI', amount: Number(sp.upiAmount) || 0 });
+          if (sp.cardAmount > 0) payments.push({ method: 'CARD', amount: Number(sp.cardAmount) || 0 });
+        } else {
+          const m = String(bill.paymentMode || 'cash').toUpperCase();
+          const single = (m === 'UPI' || m === 'CARD') ? m : 'CASH';
+          payments = [{ method: single, amount: Number(bill.grandTotal || 0) }];
+        }
+      }
+
+      const paymentSummary = payments.length > 1 ? 'Multi-method payment' : payments[0].method;
+
+      return {
+        id: bill._id.toString(),
+        billNumber: bill.billNumber,
+        customer_id: bill.customerId ? bill.customerId.toString() : null,
+        customer_name: bill.customerName || 'Walk-in',
+        items: (bill.items || []).map(it => ({
+          productId: it.productId ? it.productId.toString() : undefined,
+          productName: it.productName,
+          hsnCode: it.hsnCode,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          amount: it.lineSubtotal
+        })),
+        payments,
+        paymentSummary,
+        subtotal: bill.subtotal || 0,
+        discountPercent: bill.discountPercent || 0,
+        discountValue: bill.discountPercent || 0,
+        discountAmount: bill.discountAmount || 0,
+        afterDiscount: bill.afterDiscount || 0,
+        taxRate: (bill.cgst > 0 || bill.sgst > 0) ? 18 : (bill.igst > 0 ? 18 : 0),
+        taxAmount: bill.gstAmount || 0,
+        cgst: bill.cgst || 0,
+        sgst: bill.sgst || 0,
+        igst: bill.igst || 0,
+        total: bill.grandTotal || 0,
+        totalProfit: bill.totalProfit || 0,
+        paymentMode: bill.paymentMode || 'Cash',
+        created_at: bill.billDate
+      };
+    });
     
     res.json(formatted);
   } catch (e) {

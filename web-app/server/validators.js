@@ -134,6 +134,9 @@ function validateCheckout(data) {
       if (!item.productId) {
         errors.push(`Item ${index + 1}: Product ID is required`);
       }
+      if (!item.name || String(item.name).trim().length === 0) {
+        errors.push(`Item ${index + 1}: Product name is required`);
+      }
       if (!item.quantity || item.quantity < 1 || !Number.isInteger(Number(item.quantity))) {
         errors.push(`Item ${index + 1}: Valid quantity is required`);
       }
@@ -163,6 +166,35 @@ function validateCheckout(data) {
     errors.push('Total must be a non-negative number');
   }
   
+  // New payments array validation (preferred format)
+  if (Array.isArray(data.payments)) {
+    if (data.payments.length === 0) {
+      errors.push('At least one payment method is required');
+    } else {
+      const validMethods = ['CASH', 'UPI', 'CARD'];
+      let sum = 0;
+      data.payments.forEach((p, idx) => {
+        if (!p || typeof p !== 'object') {
+          errors.push(`Payment ${idx + 1}: Invalid payment object`);
+          return;
+        }
+        const method = p.method;
+        const amount = Number(p.amount);
+        if (!method || !validMethods.includes(method)) {
+          errors.push(`Payment ${idx + 1}: Method must be one of CASH, UPI, CARD`);
+        }
+        if (isNaN(amount) || amount <= 0) {
+          errors.push(`Payment ${idx + 1}: Amount must be a positive number`);
+        }
+        sum += isNaN(amount) ? 0 : amount;
+      });
+      const total = Number(data.total ?? data.totalAmount);
+      if (!isNaN(total) && total > 0 && Math.abs(sum - total) > 0.01) {
+        errors.push(`Payment total (${sum.toFixed(2)}) must match grand total (${total.toFixed(2)})`);
+      }
+    }
+  }
+
   // Validate payment mode (accept lowercase: cash, upi, card, split)
   const validPaymentModes = ['cash', 'upi', 'card', 'split', 'Cash', 'UPI', 'Card', 'Split'];
   if (data.paymentMode && !validPaymentModes.includes(data.paymentMode)) {
