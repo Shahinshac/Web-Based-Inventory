@@ -17,6 +17,7 @@
     "jsbarcode": "^3.12.1",
     "mongodb": "^5.9.0",
     "multer": "^2.0.2",
+    "nodemailer": "^6.9.13",
     "qrcode": "^1.5.4",
     "react-chartjs-2": "^5.3.1",
     "winston": "^3.18.3"

@@ -15,6 +15,7 @@ const multer = require('multer');
 const fs = require('fs').promises;
 const https = require('https');
 const http = require('http');
+const nodemailer = require('nodemailer');
 const {
   validateProduct,
   validateCustomer,
@@ -63,6 +64,101 @@ const upload = multer({
 
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Email: transporter (read from env)
+let emailTransporter = null;
+function getEmailTransporter() {
+  if (emailTransporter) return emailTransporter;
+  const {
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_SECURE,
+    SMTP_USER,
+    SMTP_PASS,
+    SMTP_SERVICE
+  } = process.env;
+  
+  if (SMTP_SERVICE) {
+    emailTransporter = nodemailer.createTransport({
+      service: SMTP_SERVICE,
+      auth: { user: SMTP_USER, pass: SMTP_PASS }
+    });
+  } else {
+    emailTransporter = nodemailer.createTransport({
+      host: SMTP_HOST || 'smtp.gmail.com',
+      port: Number(SMTP_PORT || 587),
+      secure: String(SMTP_SECURE || 'false') === 'true',
+      auth: { user: SMTP_USER, pass: SMTP_PASS }
+    });
+  }
+  return emailTransporter;
+}
+
+// Email: send invoice email
+async function sendInvoiceEmail(invoiceData, toEmail) {
+  const transporter = getEmailTransporter();
+  const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER;
+  
+  const itemsRows = (invoiceData.items || []).map(it => `
+    <tr>
+      <td style="padding:8px;border-bottom:1px solid #eee;">${it.name}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${it.quantity}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">₹${Number(it.price || 0).toFixed(2)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">₹${Number(it.total || 0).toFixed(2)}</td>
+    </tr>
+  `).join('');
+  
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;background:#f7f7f7;padding:20px">
+      <div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        <div style="padding:16px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff">
+          <h2 style="margin:0;">Tax Invoice</h2>
+          <div style="font-size:13px;opacity:.9">Invoice #${invoiceData.invoiceNumber} • ${new Date(invoiceData.date).toLocaleString()}</div>
+        </div>
+        <div style="padding:18px 20px;">
+          <div style="margin-bottom:12px;">
+            <div style="font-weight:600;margin-bottom:6px;">Bill To</div>
+            <div>${invoiceData.customer?.name || 'Customer'}</div>
+            ${invoiceData.customer?.phone ? `<div>${invoiceData.customer.phone}</div>` : ''}
+            ${invoiceData.customer?.email ? `<div>${invoiceData.customer.email}</div>` : ''}
+          </div>
+          <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:6px;overflow:hidden">
+            <thead style="background:#f3f4f6">
+              <tr>
+                <th style="text-align:left;padding:10px;">Item</th>
+                <th style="text-align:center;padding:10px;">Qty</th>
+                <th style="text-align:right;padding:10px;">Rate</th>
+                <th style="text-align:right;padding:10px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${itemsRows}</tbody>
+          </table>
+          <div style="margin-top:14px;border-top:1px dashed #e5e7eb;padding-top:12px;">
+            <div style="display:flex;justify-content:space-between;margin:4px 0;"><span>Subtotal</span><strong>₹${Number(invoiceData.subtotal || 0).toFixed(2)}</strong></div>
+            ${invoiceData.discountPercent ? `<div style="display:flex;justify-content:space-between;margin:4px 0;"><span>Discount (${invoiceData.discountPercent}%)</span><strong>-₹${Number(invoiceData.discountAmount || 0).toFixed(2)}</strong></div>` : ''}
+            <div style="display:flex;justify-content:space-between;margin:4px 0;"><span>GST (${invoiceData.taxRate || 18}%)</span><strong>₹${Number(invoiceData.taxAmount || 0).toFixed(2)}</strong></div>
+            <div style="display:flex;justify-content:space-between;margin:6px 0;font-size:16px;"><span>Total</span><strong>₹${Number(invoiceData.total || invoiceData.grandTotal || 0).toFixed(2)}</strong></div>
+          </div>
+          ${Array.isArray(invoiceData.payments) && invoiceData.payments.length > 0 ? `
+          <div style="margin-top:10px;">
+            <div style="font-weight:600;margin-bottom:6px;">Payment Details</div>
+            ${invoiceData.payments.map(p => `<div style="display:flex;justify-content:space-between;"><span>${p.method}</span><span>₹${Number(p.amount || 0).toFixed(2)}</span></div>`).join('')}
+          </div>` : ''}
+        </div>
+        <div style="padding:12px 20px;background:#f9fafb;color:#4b5563;font-size:12px;">
+          This is a system generated invoice. Thank you for your business.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  await transporter.sendMail({
+    from: fromEmail,
+    to: toEmail,
+    subject: `Invoice #${invoiceData.invoiceNumber}`,
+    html
+  });
+}
 
 // Utility: Generate unique barcode for product
 function generateProductBarcode(productName, productId) {
