@@ -1,0 +1,25 @@
+{
+  "name": "inventory-client",
+  "version": "0.1.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3000"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "html5-qrcode": "^2.3.8",
+    "jsbarcode": "^3.12.1",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "react": "18.2.0",
+    "react-barcode-reader": "^0.0.2",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^5.0.0"
+  }
+}

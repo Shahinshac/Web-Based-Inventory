@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: inventory-backend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: web-app/server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URI
+        sync: false

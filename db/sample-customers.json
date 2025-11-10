@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Rajesh Kumar",
+    "phone": "+91-9876543210",
+    "address": "123 MG Road, Bangalore, Karnataka 560001"
+  },
+  {
+    "name": "Priya Sharma",
+    "phone": "+91-9876543211",
+    "address": "456 Park Street, Kolkata, West Bengal 700016"
+  },
+  {
+    "name": "Amit Patel",
+    "phone": "+91-9876543212",
+    "address": "789 Link Road, Mumbai, Maharashtra 400050"
+  },
+  {
+    "name": "Sneha Reddy",
+    "phone": "+91-9876543213",
+    "address": "321 Anna Salai, Chennai, Tamil Nadu 600002"
+  },
+  {
+    "name": "Vikram Singh",
+    "phone": "+91-9876543214",
+    "address": "654 Connaught Place, New Delhi 110001"
+  }
+]
