@@ -1967,6 +1967,7 @@ export default function App(){
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             
+            @page { size: A4 portrait; margin: 10mm; }
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
               padding: 15mm; 
@@ -1977,7 +1978,8 @@ export default function App(){
             }
             
             .invoice-container { 
-              max-width: 210mm;
+              width: 210mm;
+              height: 277mm; /* A4 height minus margins */
               margin: 0 auto; 
               background: #fff;
               border: 2px solid #2d3748;
@@ -2074,7 +2076,9 @@ export default function App(){
             
             /* Content Section */
             .invoice-content {
-              padding: 25px 30px;
+              padding: 18px 20px;
+              max-height: calc(277mm - 160px); /* reduce to try to fit everything on a single A4 */
+              overflow: hidden;
             }
             
             /* Items Table */
@@ -2315,10 +2319,15 @@ export default function App(){
             
             /* Print Styles */
             @media print {
+              @page { size: A4 portrait; margin: 10mm; }
               body { 
                 padding: 0; 
                 background: white;
               }
+              html, body { height: 297mm; }
+              .invoice-container { width: 210mm; height: 277mm; transform-origin: top left; }
+              /* Try to scale if overflowing slightly so the whole invoice fits one A4 page */
+              .invoice-container { transform: scale(0.98); }
               .invoice-container { 
                 border: none; 
                 border-radius: 0;
@@ -3992,16 +4001,10 @@ export default function App(){
                        style={{width:'100%'}} />
               </div>
 
-              {/* GST Rate */}
-              <div className="form-group">
-                <label>GST Rate:</label>
-                <select value={taxRate} onChange={(e)=>setTaxRate(parseFloat(e.target.value))}>
-                  <option value="0">0% (Exempt)</option>
-                  <option value="5">5% GST</option>
-                  <option value="12">12% GST</option>
-                  <option value="18">18% GST</option>
-                  <option value="28">28% GST</option>
-                </select>
+              {/* GST Rate (fixed 18% — not editable) */}
+              <div className="form-group" style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <label style={{marginRight:'8px'}}>GST Rate:</label>
+                <div style={{padding:'8px 12px', background:'#f1f5f9', borderRadius:'8px', border:'1px solid #e2e8f0', fontWeight:600}}>18% (Fixed)</div>
               </div>
 
               {/* Seller Selection */}
