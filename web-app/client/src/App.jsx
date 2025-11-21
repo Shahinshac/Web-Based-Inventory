@@ -194,11 +194,12 @@ export default function App(){
     if (storedUser) {
       setIsAuthenticated(true)
       setCurrentUser(JSON.parse(storedUser))
-      setIsAdmin(storedIsAdmin === 'true')
+      const isAdminStored = (storedIsAdmin === 'true') || (storedRole === 'admin')
+      setIsAdmin(isAdminStored)
       setUserRole(storedRole || 'cashier') // Default to cashier if no role stored
-      
+
       // Fetch users if admin
-      if (storedIsAdmin === 'true') {
+      if (isAdminStored) {
         fetchUsers()
       }
     }
@@ -800,21 +801,26 @@ export default function App(){
           }
           
           // User login successful
+          const isAdminUser = data.user.role === 'admin'
           localStorage.setItem('currentUser', JSON.stringify(data.user))
-          localStorage.setItem('isAdmin', 'false')
+          localStorage.setItem('isAdmin', isAdminUser ? 'true' : 'false')
           localStorage.setItem('userRole', data.user.role || 'cashier') // Default to cashier
-          
+
           setIsAuthenticated(true)
-          setIsAdmin(false)
+          setIsAdmin(isAdminUser)
           setUserRole(data.user.role || 'cashier') // Default to cashier
           setCurrentUser(data.user)
           setShowAuthModal(false)
           setAuthError('')
           setAuthUsername('')
           setAuthPassword('')
-          
+
           alert(`✅ Welcome ${data.user.username}! You're now logged in.`)
-          
+
+          if (isAdminUser) {
+            fetchUsers()
+          }
+
           if (pendingAction) {
             pendingAction()
             setPendingAction(null)
