@@ -99,9 +99,56 @@ This guide will help you deploy the Inventory Management System to Vercel (front
 
 ### Backend Issues
 
-- **Connection Timeout**: Check MongoDB Atlas Network Access settings
-- **Database Connection Failed**: Verify `MONGODB_URI` is correct
-- **Build Failed**: Check Render logs for npm install errors
+#### ❌ Error: "Server localhost:27017 error" or "Connection attempt failed"
+
+**Problem**: The `MONGODB_URI` environment variable is not set in Render, so it's trying to connect to localhost.
+
+**Solution**:
+1. Go to your Render service dashboard
+2. Click on **"Environment"** tab (in the left sidebar)
+3. Click **"Add Environment Variable"**
+4. Add these **REQUIRED** variables:
+
+   ```
+   Key: MONGODB_URI
+   Value: mongodb+srv://username:password@cluster.mongodb.net/inventorydb?retryWrites=true&w=majority
+   ```
+   
+   Replace with your actual MongoDB Atlas connection string.
+
+5. Also add these required variables:
+   ```
+   NODE_ENV=production
+   PORT=4000
+   DB_NAME=inventorydb
+   ADMIN_USERNAME=admin
+   ADMIN_PASSWORD=your-secure-password-here
+   ```
+
+6. Click **"Save Changes"**
+7. Render will automatically redeploy your service
+
+**How to get MongoDB Atlas connection string**:
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Click **"Connect"** on your cluster
+3. Select **"Connect your application"**
+4. Copy the connection string
+5. Replace `<password>` with your database user password
+6. Replace `<dbname>` with `inventorydb` (or add `?retryWrites=true&w=majority` at the end)
+
+#### Connection Timeout
+- Check MongoDB Atlas **Network Access** settings
+- Add `0.0.0.0/0` to allow all IPs (or use Render's IP ranges)
+- Ensure your MongoDB cluster is running (not paused)
+
+#### Database Connection Failed
+- Verify `MONGODB_URI` is correct (check for typos)
+- Ensure password in connection string is URL-encoded if it contains special characters
+- Check MongoDB Atlas cluster status
+
+#### Build Failed
+- Check Render logs for npm install errors
+- Verify Node.js version compatibility (requires Node 18+)
 
 ### Frontend Issues
 
