@@ -1007,6 +1007,8 @@ app.get('/api/invoices', async (req, res) => {
       id: bill._id.toString(),
       customer_id: bill.customerId ? bill.customerId.toString() : null,
       customer_name: bill.customerName || 'Walk-in',
+      customerPhone: bill.customerPhone || null,
+      customerAddress: bill.customerAddress || null,
       subtotal: bill.subtotal || 0,
       discountPercent: bill.discountPercent || 0,
       discountValue: bill.discountPercent || 0,
@@ -1020,7 +1022,21 @@ app.get('/api/invoices', async (req, res) => {
       total: bill.grandTotal || 0,
       totalProfit: bill.totalProfit || 0,
       paymentMode: bill.paymentMode || 'Cash',
-      created_at: bill.billDate
+      splitPaymentDetails: bill.splitPaymentDetails || null,
+      items: bill.items ? bill.items.map(item => ({
+        productId: item.productId ? item.productId.toString() : null,
+        productName: item.productName || 'Unknown',
+        name: item.productName || 'Unknown',
+        hsnCode: item.hsnCode || '9999',
+        quantity: item.quantity || 0,
+        unitPrice: item.unitPrice || 0,
+        price: item.unitPrice || 0,
+        lineSubtotal: item.lineSubtotal || 0
+      })) : [],
+      created_at: bill.billDate,
+      date: bill.billDate,
+      createdByUsername: bill.createdByUsername || 'Unknown',
+      billNumber: bill.billNumber || bill._id.toString()
     }));
     
     res.json(formatted);

@@ -1289,45 +1289,107 @@ export default function App(){
 
   // PDF Export Functions
   function exportInvoiceToPDF(invoice) {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('INVOICE', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.text(`Invoice #${invoice.id}`, 20, 35);
-    doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, 20, 42);
-    doc.text(`Customer: ${invoice.customer_name || 'Walk-in Customer'}`, 20, 49);
-    
-    // Items table
-    const items = invoice.items || [];
-    const tableData = items.map(item => [
-      item.productName || item.name || 'Unknown',
-      item.quantity || 0,
-      `₹${(item.unitPrice || item.price || 0).toFixed(1)}`,
-      `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(1)}`
-    ]);
-    
-    doc.autoTable({
-      startY: 60,
-      head: [['Product', 'Qty', 'Unit Price', 'Total']],
-      body: tableData,
-      theme: 'grid'
-    });
-    
-    const finalY = doc.lastAutoTable.finalY + 10;
-    
-    // Totals
-    doc.text(`Subtotal: ${formatCurrency(invoice.subtotal || 0)}`, 150, finalY);
-    doc.text(`Discount (${invoice.discountPercent || 0}%): -${formatCurrency(invoice.discountAmount || 0)}`, 150, finalY + 7);
-    doc.text(`GST (18%): ${formatCurrency(invoice.taxAmount || 0)}`, 150, finalY + 14);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Grand Total: ${formatCurrency(invoice.total || 0)}`, 150, finalY + 24);
-    
-    doc.save(`Invoice-${invoice.id}.pdf`);
-    showNotification('✅ Invoice PDF downloaded!', 'success');
+    try {
+      const doc = new jsPDF();
+      
+      // Get invoice date
+      const invoiceDate = invoice.created_at || invoice.date || new Date();
+      const dateObj = new Date(invoiceDate);
+      
+      // Header
+      doc.setFontSize(20);
+      doc.text('INVOICE', 105, 20, { align: 'center' });
+      
+      // Company Info
+      doc.setFontSize(10);
+      doc.text(companyInfo.name || 'Company Name', 20, 30);
+      doc.setFontSize(8);
+      doc.text(companyInfo.address || '', 20, 36);
+      doc.text(`Phone: ${companyInfo.phone || ''} | Email: ${companyInfo.email || ''}`, 20, 42);
+      doc.text(`GSTIN: ${companyInfo.gstin || ''}`, 20, 48);
+      
+      // Invoice Details
+      doc.setFontSize(10);
+      doc.text(`Invoice #: ${invoice.billNumber || invoice.id}`, 150, 30);
+      doc.text(`Date: ${dateObj.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}`, 150, 36);
+      doc.text(`Time: ${dateObj.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}`, 150, 42);
+      
+      // Customer Info
+      doc.text(`Customer: ${invoice.customer_name || 'Walk-in Customer'}`, 20, 58);
+      if (invoice.customerPhone) {
+        doc.text(`Phone: ${invoice.customerPhone}`, 20, 64);
+      }
+      
+      // Seller Info
+      doc.text(`Seller: ${invoice.createdByUsername || currentUser?.username || 'Unknown'}`, 150, 58);
+      
+      // Items table
+      const items = invoice.items || [];
+      let startY = 75;
+      
+      if (items.length > 0) {
+        const tableData = items.map(item => [
+          item.productName || item.name || 'Unknown',
+          (item.quantity || 0).toString(),
+          `₹${(item.unitPrice || item.price || 0).toFixed(2)}`,
+          `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(2)}`
+        ]);
+        
+        doc.autoTable({
+          startY: startY,
+          head: [['Product', 'Qty', 'Unit Price', 'Total']],
+          body: tableData,
+          theme: 'grid',
+          styles: { fontSize: 9 }
+        });
+        
+        startY = doc.lastAutoTable.finalY + 10;
+      } else {
+        doc.text('No items found', 20, startY);
+        startY += 10;
+      }
+      
+      // Totals
+      doc.setFontSize(10);
+      doc.text(`Subtotal: ${formatCurrency(invoice.subtotal || 0)}`, 150, startY);
+      if (invoice.discountPercent > 0) {
+        doc.text(`Discount (${invoice.discountPercent || 0}%): -${formatCurrency(invoice.discountAmount || 0)}`, 150, startY + 7);
+        doc.text(`After Discount: ${formatCurrency(invoice.afterDiscount || (invoice.subtotal - invoice.discountAmount) || 0)}`, 150, startY + 14);
+        startY += 7;
+      }
+      doc.text(`GST (${invoice.taxRate || 18}%): ${formatCurrency(invoice.taxAmount || 0)}`, 150, startY + 7);
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Grand Total: ${formatCurrency(invoice.total || 0)}`, 150, startY + 17);
+      
+      // Payment Method
+      const paymentY = startY + 27;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      const isSplitPayment = (invoice.paymentMode === 'split' || invoice.paymentMode === 'Split') && invoice.splitPaymentDetails;
+      
+      if (isSplitPayment && invoice.splitPaymentDetails) {
+        doc.text('Payment Method: Split Payment', 20, paymentY);
+        const splitY = paymentY + 7;
+        if (invoice.splitPaymentDetails.cashAmount > 0) {
+          doc.text(`  Cash: ${formatCurrency(invoice.splitPaymentDetails.cashAmount)}`, 20, splitY);
+        }
+        if (invoice.splitPaymentDetails.upiAmount > 0) {
+          doc.text(`  UPI: ${formatCurrency(invoice.splitPaymentDetails.upiAmount)}`, 20, splitY + 7);
+        }
+        if (invoice.splitPaymentDetails.cardAmount > 0) {
+          doc.text(`  Card: ${formatCurrency(invoice.splitPaymentDetails.cardAmount)}`, 20, splitY + 14);
+        }
+      } else {
+        doc.text(`Payment Method: ${(invoice.paymentMode || 'Cash').toUpperCase()}`, 20, paymentY);
+      }
+      
+      doc.save(`Invoice-${invoice.billNumber || invoice.id}.pdf`);
+      showNotification('✅ Invoice PDF downloaded!', 'success');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      showNotification('❌ Failed to export PDF: ' + error.message, 'error');
+    }
   }
 
   function exportProductsToPDF() {
@@ -1820,17 +1882,35 @@ export default function App(){
           // Store bill data and show bill modal
           setLastBill({
             ...j,
-            billNumber: j.billId,
+            billId: j.billId,
+            billNumber: j.billNumber || j.billId,
             customerName: selectedCustomer?.name || 'Walk-in Customer',
             customerPhone: selectedCustomer?.phone || '',
-            paymentMode: paymentMode,
+            customerAddress: selectedCustomer?.address || '',
+            paymentMode: splitPayment ? PAYMENT_MODES.SPLIT : paymentMode,
+            splitPaymentDetails: splitPayment ? {
+              cashAmount: parseFloat(cashAmount) || 0,
+              upiAmount: parseFloat(upiAmount) || 0,
+              cardAmount: parseFloat(cardAmount) || 0,
+              totalAmount: grandTotal
+            } : null,
             subtotal: subtotal,
             discountAmount: discountAmount,
             discountPercent: discount,
             discountValue: discount,
-            taxRate: taxRate,
+            taxRate: taxRate || GST_PERCENT,
             taxAmount: taxAmount,
-            total: grandTotal
+            total: grandTotal,
+            items: cart.map(item => ({
+              productId: item.productId,
+              name: item.name,
+              productName: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              unitPrice: item.price
+            })),
+            date: new Date().toISOString(),
+            createdByUsername: isAdmin ? 'admin' : currentUser?.username || 'Unknown'
           });
           setShowBill(true);
           
@@ -1878,16 +1958,31 @@ export default function App(){
             billNumber: offlineId,
             customerName: selectedCustomer?.name || 'Walk-in Customer',
             customerPhone: selectedCustomer?.phone || '',
-            paymentMode: paymentMode,
+            customerAddress: selectedCustomer?.address || '',
+            paymentMode: splitPayment ? PAYMENT_MODES.SPLIT : paymentMode,
+            splitPaymentDetails: splitPayment ? {
+              cashAmount: parseFloat(cashAmount) || 0,
+              upiAmount: parseFloat(upiAmount) || 0,
+              cardAmount: parseFloat(cardAmount) || 0,
+              totalAmount: grandTotal
+            } : null,
             subtotal: subtotal,
             discountAmount: discountAmount,
             discountPercent: discount,
             discountValue: discount,
-            taxRate: taxRate,
+            taxRate: taxRate || GST_PERCENT,
             taxAmount: taxAmount,
             total: grandTotal,
-            items: cart,
+            items: cart.map(item => ({
+              productId: item.productId,
+              name: item.name,
+              productName: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              unitPrice: item.price
+            })),
             date: new Date().toISOString(),
+            createdByUsername: isAdmin ? 'admin' : currentUser?.username || 'Unknown',
             isOffline: true
           };
           
@@ -1945,8 +2040,21 @@ export default function App(){
     const taxRate = lastBill.taxRate;
     const grandTotal = lastBill.total;
     
-    // Check if split payment
-    const isSplitPayment = paymentMode === 'split' || paymentMode === 'Split';
+    // Get customer info from lastBill
+    const customerName = lastBill.customerName || lastBill.customer_name || 'Walk-in Customer';
+    const customerPhone = lastBill.customerPhone || lastBill.customerPhone || '';
+    const customerAddress = lastBill.customerAddress || lastBill.customerAddress || '';
+    
+    // Get date/time from lastBill
+    const billDate = lastBill.date || lastBill.created_at || new Date();
+    const dateObj = new Date(billDate);
+    
+    // Get seller name
+    const sellerName = lastBill.createdByUsername || currentUser?.username || 'Unknown';
+    
+    // Check if split payment - use lastBill.paymentMode instead of state
+    const billPaymentMode = lastBill.paymentMode || 'Cash';
+    const isSplitPayment = (billPaymentMode === 'split' || billPaymentMode === 'Split') && lastBill.splitPaymentDetails;
     const splitDetails = lastBill.splitPaymentDetails;
     
     const billHTML = `
@@ -2401,50 +2509,43 @@ export default function App(){
             <div class="invoice-meta">
               <div class="meta-block" style="flex: 1;">
                 <h3>📋 Bill To</h3>
-                ${selectedCustomer ? `
-                  <div class="meta-row">
-                    <span class="meta-label">Name:</span>
-                    <span class="meta-value">${selectedCustomer.name}</span>
-                  </div>
-                  <div class="meta-row">
-                    <span class="meta-label">Phone:</span>
-                    <span class="meta-value">${selectedCustomer.phone || 'N/A'}</span>
-                  </div>
-                  ${selectedCustomer.address ? `
-                  <div class="meta-row">
-                    <span class="meta-label">Address:</span>
-                    <span class="meta-value">${selectedCustomer.address}</span>
-                  </div>` : ''}
-                  ${selectedCustomer.gstin ? `
-                  <div class="meta-row">
-                    <span class="meta-label">GSTIN:</span>
-                    <span class="meta-value">${selectedCustomer.gstin}</span>
-                  </div>` : ''}
-                ` : `
-                  <div class="meta-row">
-                    <span class="meta-label">Customer:</span>
-                    <span class="meta-value">Walk-in Customer</span>
-                  </div>
-                `}
+                <div class="meta-row">
+                  <span class="meta-label">Name:</span>
+                  <span class="meta-value">${customerName}</span>
+                </div>
+                ${customerPhone ? `
+                <div class="meta-row">
+                  <span class="meta-label">Phone:</span>
+                  <span class="meta-value">${customerPhone}</span>
+                </div>` : ''}
+                ${customerAddress ? `
+                <div class="meta-row">
+                  <span class="meta-label">Address:</span>
+                  <span class="meta-value">${customerAddress}</span>
+                </div>` : ''}
               </div>
               
               <div class="meta-block" style="flex: 1;">
                 <h3>📄 Invoice Details</h3>
                 <div class="meta-row">
                   <span class="meta-label">Invoice #:</span>
-                  <span class="meta-value">${lastBill.billId}</span>
+                  <span class="meta-value">${lastBill.billId || lastBill.billNumber || lastBill.id}</span>
                 </div>
                 <div class="meta-row">
                   <span class="meta-label">Date:</span>
-                  <span class="meta-value">${new Date(lastBill.date).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}</span>
+                  <span class="meta-value">${dateObj.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}</span>
                 </div>
                 <div class="meta-row">
                   <span class="meta-label">Time:</span>
-                  <span class="meta-value">${new Date(lastBill.date).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}</span>
+                  <span class="meta-value">${dateObj.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Seller:</span>
+                  <span class="meta-value">${sellerName}</span>
                 </div>
                 <div class="meta-row">
                   <span class="meta-label">Payment:</span>
-                  <span class="meta-value">${isSplitPayment ? 'Split Payment' : paymentMode.toUpperCase()}</span>
+                  <span class="meta-value">${isSplitPayment ? 'Split Payment' : billPaymentMode.toUpperCase()}</span>
                 </div>
               </div>
             </div>
@@ -2465,16 +2566,20 @@ export default function App(){
                     </tr>
                   </thead>
                   <tbody>
-                    ${lastBill.items.map((item, idx) => {
-                      const product = products.find(p => p._id === item.productId);
+                    ${(lastBill.items || []).map((item, idx) => {
+                      const product = products.find(p => p._id === item.productId || p._id?.toString() === item.productId?.toString());
+                      const itemName = item.name || item.productName || 'Unknown';
+                      const itemPrice = item.price || item.unitPrice || 0;
+                      const itemQuantity = item.quantity || 0;
+                      const hsnCode = item.hsnCode || product?.hsnCode || 'N/A';
                       return `
                         <tr>
                           <td class="text-center font-medium">${idx + 1}</td>
-                          <td class="font-semibold">${item.name}</td>
-                          <td class="text-center">${product?.hsnCode || 'N/A'}</td>
-                          <td class="text-center font-medium">${item.quantity}</td>
-                          <td class="text-right">${fmt1(item.price)}</td>
-                          <td class="text-right font-semibold">${fmt1(item.price * item.quantity)}</td>
+                          <td class="font-semibold">${itemName}</td>
+                          <td class="text-center">${hsnCode}</td>
+                          <td class="text-center font-medium">${itemQuantity}</td>
+                          <td class="text-right">${fmt1(itemPrice)}</td>
+                          <td class="text-right font-semibold">${fmt1(itemPrice * itemQuantity)}</td>
                         </tr>
                       `;
                     }).join('')}
@@ -2516,7 +2621,7 @@ export default function App(){
                 <span>${numberToWords(Math.round(grandTotal))} Rupees Only</span>
               </div>
               
-              <!-- Split Payment Details -->
+              <!-- Payment Details -->
               ${isSplitPayment && splitDetails ? `
                 <div class="payment-details">
                   <h4>💰 Payment Breakdown</h4>
@@ -2541,7 +2646,15 @@ export default function App(){
                     ` : ''}
                   </div>
                 </div>
-              ` : ''}
+              ` : `
+                <div class="payment-details">
+                  <h4>💰 Payment Method</h4>
+                  <div style="padding: 10px; background: white; border-radius: 4px; text-align: center;">
+                    <div class="payment-method" style="font-size: 10pt; margin-bottom: 5px;">${billPaymentMode === 'cash' ? '💵 Cash' : billPaymentMode === 'upi' ? '📱 UPI' : billPaymentMode === 'card' ? '💳 Card' : billPaymentMode.toUpperCase()}</div>
+                    <div class="payment-amount">₹${fmt1(grandTotal)}</div>
+                  </div>
+                </div>
+              `}
               
               <!-- Terms & Conditions -->
               <div class="terms-section">
@@ -4928,13 +5041,31 @@ export default function App(){
                         </td>
                         <td><strong style={{color:'#2c3e50'}}>₹{(inv.total || inv.grandTotal || 0).toFixed(1)}</strong></td>
                         <td>
-                          <span className={`badge ${
-                            inv.paymentMode === 'Cash' ? 'success' : 
-                            inv.paymentMode === 'UPI' ? 'primary' : 
-                            'info'
-                          }`}>
-                            {inv.paymentMode || 'Cash'}
-                          </span>
+                          {(inv.paymentMode === 'split' || inv.paymentMode === 'Split') && inv.splitPaymentDetails ? (
+                            <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+                              <span className="badge info" style={{fontSize:'11px'}}>Split Payment</span>
+                              <div style={{fontSize:'10px',color:'#666',display:'flex',flexDirection:'column',gap:'2px'}}>
+                                {inv.splitPaymentDetails.cashAmount > 0 && (
+                                  <span>Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</span>
+                                )}
+                                {inv.splitPaymentDetails.upiAmount > 0 && (
+                                  <span>UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</span>
+                                )}
+                                {inv.splitPaymentDetails.cardAmount > 0 && (
+                                  <span>Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className={`badge ${
+                              inv.paymentMode === 'Cash' || inv.paymentMode === 'cash' ? 'success' : 
+                              inv.paymentMode === 'UPI' || inv.paymentMode === 'upi' ? 'primary' : 
+                              inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? 'info' : 
+                              'info'
+                            }`}>
+                              {inv.paymentMode || 'Cash'}
+                            </span>
+                          )}
                         </td>
                         <td>
                           <button 
