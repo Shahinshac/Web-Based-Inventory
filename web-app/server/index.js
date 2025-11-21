@@ -14,6 +14,7 @@ const { createCanvas } = require('canvas');
 const multer = require('multer');
 const fs = require('fs').promises;
 const https = require('https');
+const crypto = require('crypto');
 const http = require('http');
 const {
   validateProduct,
@@ -971,6 +972,82 @@ app.get('/api/invoices', async (req, res) => {
   } catch (e) {
     logger.error(e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Create a short-lived public link for an invoice (customers can open without auth)
+app.post('/api/invoices/:id/public', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDB();
+
+    // Ensure invoice exists (try ObjectId then billNumber)
+    let invoice = null;
+    try {
+      invoice = await db.collection('bills').findOne({ _id: new ObjectId(id) });
+    } catch (e) {}
+    if (!invoice) {
+      invoice = await db.collection('bills').findOne({ billNumber: id });
+    }
+
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+    // create token and store in DB
+    const token = crypto.randomBytes(16).toString('hex');
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+
+    await db.collection('public_invoice_links').insertOne({
+      token,
+      invoiceId: invoice._id.toString(),
+      createdAt: new Date(),
+      expiresAt: new Date(expiresAt),
+      createdBy: req.body.requestedBy || 'system'
+    });
+
+    const base = process.env.PUBLIC_BASE_URL || (req.protocol + '://' + req.get('host'));
+    const publicUrl = `${base}/public/invoice/${token}`;
+
+    // Log audit
+    await logAudit(db, 'PUBLIC_INVOICE_LINK_CREATED', null, req.body.requestedBy || 'system', { invoiceId: invoice._id.toString(), token });
+
+    res.json({ publicUrl, token, expiresAt });
+  } catch (e) {
+    logger.error('Create public invoice link failed', e);
+    res.status(500).json({ error: 'Failed to create public link' });
+  }
+});
+
+// Public invoice view by token
+app.get('/public/invoice/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const db = getDB();
+
+    const entry = await db.collection('public_invoice_links').findOne({ token });
+    if (!entry) return res.status(404).send('Link not found');
+    if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) {
+      return res.status(410).send('Link expired');
+    }
+
+    const invoiceId = entry.invoiceId;
+    let invoice = null;
+    try {
+      invoice = await db.collection('bills').findOne({ _id: new ObjectId(invoiceId) });
+    } catch (e) {}
+    if (!invoice) invoice = await db.collection('bills').findOne({ billNumber: invoiceId });
+    if (!invoice) return res.status(404).send('Invoice not found');
+
+    // Simple HTML rendering for customers
+    res.set('Content-Type', 'text/html');
+    res.send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice ${invoice._id}</title>
+      <style>body{font-family:Segoe UI,Arial,sans-serif;padding:18px;background:#f7fafc;color:#111} .card{background:#fff;border-radius:8px;padding:18px;max-width:760px;margin:18px auto;box-shadow:0 6px 18px rgba(0,0,0,.08)} table{width:100%;border-collapse:collapse} th,td{padding:8px;text-align:left;border-bottom:1px solid #eee}</style>
+      </head><body><div class="card"><h2>Invoice #${invoice.billNumber || invoice._id}</h2><p>Customer: ${invoice.customerName || 'Walk-in'}</p><p>Date: ${new Date(invoice.billDate).toLocaleString()}</p><table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>
+      ${ (invoice.items || []).map(it => `<tr><td>${it.productName}</td><td>${it.quantity}</td><td>₹${(it.unitPrice||it.price||0).toFixed(1)}</td><td>₹${(((it.unitPrice||it.price||0) * (it.quantity||0))).toFixed(1)}</td></tr>`).join('') }
+      </tbody></table><div style="margin-top:16px"><strong>Total: ₹${(invoice.grandTotal||invoice.total||0).toFixed(1)}</strong></div><p style="margin-top:18px;color:#666">This link expires on ${new Date(entry.expiresAt).toLocaleString()}</p></div></body></html>`);
+
+  } catch (e) {
+    logger.error('Public invoice serve error', e);
+    res.status(500).send('Server error');
   }
 });
 
