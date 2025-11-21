@@ -124,7 +124,6 @@ export default function App(){
   
   // Analytics data
   const [analyticsData, setAnalyticsData] = useState({
-    salesTrend: {},
     topProducts: [],
     lowStock: [],
     revenueSummary: {}
@@ -606,15 +605,13 @@ export default function App(){
   
   async function fetchAnalyticsData(days = 30) {
     try {
-      const [salesTrendRes, topProductsRes, lowStockRes, revenueSummaryRes] = await Promise.all([
-        fetch(API(`/api/analytics/sales-trend?days=${days}`)),
+      const [topProductsRes, lowStockRes, revenueSummaryRes] = await Promise.all([
         fetch(API(`/api/analytics/top-products?days=${days}&limit=10`)),
         fetch(API('/api/analytics/low-stock')),
         fetch(API(`/api/analytics/revenue-profit?days=${days}`))
       ]);
       
       const data = {
-        salesTrend: salesTrendRes.ok ? await salesTrendRes.json() : {},
         topProducts: topProductsRes.ok ? await topProductsRes.json() : [],
         lowStock: lowStockRes.ok ? await lowStockRes.json() : [],
         revenueSummary: revenueSummaryRes.ok ? await revenueSummaryRes.json() : {}
@@ -3822,86 +3819,6 @@ export default function App(){
                   <p>Today's Profit</p>
                 </div>
               </div>
-            </div>
-
-            {/* Sales Trend Graph - Demo */}
-            <div className="card" style={{marginBottom:'30px',padding:'30px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-                <h3>📈 Sales Trend (Last 7 Days)</h3>
-                <span style={{fontSize:'12px',color:'#999'}}>Demo Chart</span>
-              </div>
-              <div style={{
-                display:'flex',
-                alignItems:'flex-end',
-                gap:'20px',
-                height:'200px',
-                borderBottom:'2px solid #e2e8f0',
-                borderLeft:'2px solid #e2e8f0',
-                padding:'20px',
-                background:'#f8fafc',
-                borderRadius:'12px'
-              }}>
-                {[
-                  {day: 'Mon', value: 65, color: '#667eea'},
-                  {day: 'Tue', value: 45, color: '#764ba2'},
-                  {day: 'Wed', value: 80, color: '#f093fb'},
-                  {day: 'Thu', value: 55, color: '#4facfe'},
-                  {day: 'Fri', value: 90, color: '#00f2fe'},
-                  {day: 'Sat', value: 70, color: '#43e97b'},
-                  {day: 'Sun', value: 60, color: '#38f9d7'}
-                ].map((item, index) => (
-                  <div key={index} style={{
-                    flex:1,
-                    display:'flex',
-                    flexDirection:'column',
-                    alignItems:'center',
-                    gap:'10px'
-                  }}>
-                    <div className="chart-bar" style={{
-                      width:'100%',
-                      height:`${item.value}%`,
-                      background:`linear-gradient(180deg, ${item.color} 0%, ${item.color}88 100%)`,
-                      borderRadius:'8px 8px 0 0',
-                      transition:'all 0.3s ease',
-                      cursor:'pointer',
-                      position:'relative'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                    >
-                      <div style={{
-                        position:'absolute',
-                        top:'-25px',
-                        left:'50%',
-                        transform:'translateX(-50%)',
-                        background:'rgba(0,0,0,0.8)',
-                        color:'white',
-                        padding:'4px 8px',
-                        borderRadius:'6px',
-                        fontSize:'11px',
-                        fontWeight:'bold',
-                        opacity:0,
-                        pointerEvents:'none',
-                        transition:'opacity 0.2s'
-                      }}
-                      className="chart-tooltip"
-                      >
-                        ₹{item.value}k
-                      </div>
-                    </div>
-                    <span style={{fontSize:'12px',fontWeight:'600',color:'#64748b'}}>{item.day}</span>
-                  </div>
-                ))}
-              </div>
-              <p style={{textAlign:'center',marginTop:'15px',color:'#94a3b8',fontSize:'13px'}}>
-                💡 This is a demo visualization. Real sales data will be displayed here once you have transactions.
-              </p>
             </div>
 
             <div className="recent-section">
