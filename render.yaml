@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: inventory-api
+    env: node
+    plan: free
+    rootDir: web-app/server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URI
+        sync: false
+      - key: DB_NAME
+        value: inventorydb
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+        optional: true
+
