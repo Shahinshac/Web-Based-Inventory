@@ -1285,241 +1285,6 @@ export default function App(){
     showNotification(`Added ${quantity}x ${product.name} to cart!`, 'success')
   }
 
-  // PDF Export Functions
-  function exportInvoiceToPDF(invoice) {
-    try {
-      const doc = new jsPDF();
-      
-      // Get invoice date
-      const invoiceDate = invoice.created_at || invoice.date || new Date();
-      const dateObj = new Date(invoiceDate);
-      
-      // Get customer info
-      const customerName = invoice.customer_name || invoice.customerName || 'Walk-in Customer';
-      const customerPhone = invoice.customerPhone || '';
-      const customerAddress = invoice.customerAddress || '';
-      const sellerName = invoice.createdByUsername || currentUser?.username || 'Unknown';
-      
-      // Get payment info
-      const billPaymentMode = invoice.paymentMode || 'Cash';
-      const isSplitPayment = (billPaymentMode === 'split' || billPaymentMode === 'Split') && invoice.splitPaymentDetails;
-      const splitDetails = invoice.splitPaymentDetails;
-      
-      // Get totals
-      const subtotal = invoice.subtotal || 0;
-      const discountAmount = invoice.discountAmount || 0;
-      const discountPercent = invoice.discountPercent || 0;
-      const afterDiscount = invoice.afterDiscount || (subtotal - discountAmount);
-      const taxAmount = invoice.taxAmount || 0;
-      const taxRate = invoice.taxRate || 18;
-      const grandTotal = invoice.total || invoice.grandTotal || 0;
-      
-      // Header Section - Styled like print bill
-      doc.setFillColor(102, 126, 234); // Purple gradient color
-      doc.rect(0, 0, 210, 50, 'F');
-      
-      // Company Logo/Name
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(26);
-      doc.setFont(undefined, 'bold');
-      doc.text(companyInfo.logo || '⚡', 20, 20);
-      doc.text(companyInfo.name || 'Company Name', 35, 20);
-      
-      // TAX INVOICE Badge
-      doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
-      doc.text('TAX INVOICE', 170, 20, { align: 'right' });
-      
-      // Company Details
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.text(companyInfo.address || '', 20, 28);
-      doc.text(`Phone: ${companyInfo.phone || ''} | Email: ${companyInfo.email || ''}`, 20, 34);
-      doc.text(`GSTIN: ${companyInfo.gstin || ''}`, 20, 40);
-      
-      // Invoice Meta Section
-      let currentY = 60;
-      doc.setFillColor(248, 249, 250); // Light gray background
-      doc.rect(0, currentY, 210, 40, 'F');
-      doc.setTextColor(0, 0, 0);
-      
-      // Bill To Section
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(102, 126, 234);
-      doc.text('📋 BILL TO', 20, currentY + 8);
-      doc.setDrawColor(102, 126, 234);
-      doc.line(20, currentY + 10, 100, currentY + 10);
-      
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Name: ${customerName}`, 20, currentY + 16);
-      if (customerPhone) {
-        doc.text(`Phone: ${customerPhone}`, 20, currentY + 22);
-      }
-      if (customerAddress) {
-        doc.text(`Address: ${customerAddress}`, 20, currentY + 28);
-      }
-      
-      // Invoice Details Section
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(102, 126, 234);
-      doc.text('📄 INVOICE DETAILS', 120, currentY + 8);
-      doc.line(120, currentY + 10, 190, currentY + 10);
-      
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Invoice #: ${invoice.billNumber || invoice.id || invoice._id}`, 120, currentY + 16);
-      doc.text(`Date: ${dateObj.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}`, 120, currentY + 22);
-      doc.text(`Time: ${dateObj.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}`, 120, currentY + 28);
-      doc.text(`Seller: ${sellerName}`, 120, currentY + 34);
-      
-      // Items Table
-      currentY = 110;
-      const items = invoice.items || [];
-      
-      if (items.length > 0) {
-        const tableData = items.map((item, idx) => {
-          const product = products.find(p => p._id === item.productId || p._id?.toString() === item.productId?.toString());
-          const itemName = item.name || item.productName || 'Unknown';
-          const itemPrice = item.price || item.unitPrice || 0;
-          const itemQuantity = item.quantity || 0;
-          const hsnCode = item.hsnCode || product?.hsnCode || 'N/A';
-          return [
-            (idx + 1).toString(),
-            itemName,
-            hsnCode,
-            itemQuantity.toString(),
-            `₹${itemPrice.toFixed(2)}`,
-            `₹${(itemPrice * itemQuantity).toFixed(2)}`
-          ];
-        });
-        
-        doc.autoTable({
-          startY: currentY,
-          head: [['S.No', 'Product Description', 'HSN Code', 'Qty', 'Rate (₹)', 'Amount (₹)']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { 
-            fillColor: [74, 85, 104],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            fontSize: 9
-          },
-          styles: { 
-            fontSize: 8,
-            cellPadding: 3
-          },
-          columnStyles: {
-            0: { cellWidth: 15, halign: 'center' },
-            1: { cellWidth: 70 },
-            2: { cellWidth: 25, halign: 'center' },
-            3: { cellWidth: 20, halign: 'center' },
-            4: { cellWidth: 30, halign: 'right' },
-            5: { cellWidth: 30, halign: 'right' }
-          }
-        });
-        
-        currentY = doc.lastAutoTable.finalY + 10;
-      } else {
-        doc.text('No items found', 20, currentY);
-        currentY += 10;
-      }
-      
-      // Calculations Section
-      const calcX = 160;
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(226, 232, 240);
-      doc.rect(calcX - 5, currentY - 5, 50, 50, 'FD');
-      
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.text('Subtotal:', calcX, currentY);
-      doc.text(formatCurrency(subtotal), calcX + 30, currentY, { align: 'right' });
-      
-      if (discountPercent > 0) {
-        currentY += 6;
-        doc.setTextColor(217, 119, 6);
-        doc.text(`Discount (${discountPercent}%):`, calcX, currentY);
-        doc.text(`-${formatCurrency(discountAmount)}`, calcX + 30, currentY, { align: 'right' });
-        
-        currentY += 6;
-        doc.setTextColor(0, 0, 0);
-        doc.text('After Discount:', calcX, currentY);
-        doc.text(formatCurrency(afterDiscount), calcX + 30, currentY, { align: 'right' });
-      }
-      
-      currentY += 6;
-      doc.setTextColor(5, 150, 105);
-      doc.text(`GST (${taxRate}%):`, calcX, currentY);
-      doc.text(formatCurrency(taxAmount), calcX + 30, currentY, { align: 'right' });
-      
-      currentY += 8;
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(102, 126, 234);
-      doc.text('GRAND TOTAL:', calcX, currentY);
-      doc.text(formatCurrency(grandTotal), calcX + 30, currentY, { align: 'right' });
-      
-      // Amount in Words
-      currentY += 12;
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(0, 0, 0);
-      doc.setFont(undefined, 'bold');
-      doc.text('Amount in Words:', 20, currentY);
-      doc.setFont(undefined, 'normal');
-      doc.text(`${numberToWords(Math.round(grandTotal))} Rupees Only`, 20, currentY + 6);
-      
-      // Payment Details
-      currentY += 15;
-      const isSplit = isSplitPayment && splitDetails;
-      doc.setFont(undefined, 'bold');
-      doc.text('💰 Payment Method:', 20, currentY);
-      doc.setFont(undefined, 'normal');
-      
-      if (isSplit) {
-        currentY += 6;
-        doc.text('Split Payment', 20, currentY);
-        if (splitDetails.cashAmount > 0) {
-          currentY += 6;
-          doc.text(`  Cash: ${formatCurrency(splitDetails.cashAmount)}`, 20, currentY);
-        }
-        if (splitDetails.upiAmount > 0) {
-          currentY += 6;
-          doc.text(`  UPI: ${formatCurrency(splitDetails.upiAmount)}`, 20, currentY);
-        }
-        if (splitDetails.cardAmount > 0) {
-          currentY += 6;
-          doc.text(`  Card: ${formatCurrency(splitDetails.cardAmount)}`, 20, currentY);
-        }
-      } else {
-        currentY += 6;
-        doc.text(billPaymentMode.toUpperCase(), 20, currentY);
-      }
-      
-      // Footer
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setFillColor(45, 55, 72);
-      doc.rect(0, pageHeight - 20, 210, 20, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
-      doc.text('✨ Thank You For Your Business! ✨', 105, pageHeight - 12, { align: 'center' });
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
-      doc.text(`This is a computer-generated invoice | For any queries, please contact us at ${companyInfo.phone}`, 105, pageHeight - 6, { align: 'center' });
-      
-      doc.save(`Invoice-${invoice.billNumber || invoice.id || invoice._id}.pdf`);
-      showNotification('✅ Invoice PDF downloaded!', 'success');
-    } catch (error) {
-      console.error('PDF export error:', error);
-      showNotification('❌ Failed to export PDF: ' + error.message, 'error');
-    }
-  }
 
   function exportProductsToPDF() {
     const doc = new jsPDF();
@@ -4997,13 +4762,12 @@ export default function App(){
                     <th>GST</th>
                     <th>Total</th>
                     <th>Payment</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getFilteredInvoices().length === 0 ? (
                     <tr>
-                      <td colSpan="10" style={{textAlign:'center',padding:'40px',color:'#999'}}>
+                      <td colSpan="9" style={{textAlign:'center',padding:'40px',color:'#999'}}>
                         No invoices found for selected period
                       </td>
                     </tr>
@@ -5033,16 +4797,16 @@ export default function App(){
                         <td>
                           {(inv.paymentMode === 'split' || inv.paymentMode === 'Split') && inv.splitPaymentDetails ? (
                             <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
-                              <span className="badge info" style={{fontSize:'11px'}}>Split Payment</span>
+                              <span className="badge info" style={{fontSize:'11px'}}>💰 Split Payment</span>
                               <div style={{fontSize:'10px',color:'#666',display:'flex',flexDirection:'column',gap:'2px'}}>
                                 {inv.splitPaymentDetails.cashAmount > 0 && (
-                                  <span>Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</span>
+                                  <span>💵 Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</span>
                                 )}
                                 {inv.splitPaymentDetails.upiAmount > 0 && (
-                                  <span>UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</span>
+                                  <span>📱 UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</span>
                                 )}
                                 {inv.splitPaymentDetails.cardAmount > 0 && (
-                                  <span>Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</span>
+                                  <span>💳 Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</span>
                                 )}
                               </div>
                             </div>
@@ -5053,18 +4817,12 @@ export default function App(){
                               inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? 'info' : 
                               'info'
                             }`}>
+                              {inv.paymentMode === 'Cash' || inv.paymentMode === 'cash' ? '💵 ' : 
+                               inv.paymentMode === 'UPI' || inv.paymentMode === 'upi' ? '📱 ' : 
+                               inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? '💳 ' : ''}
                               {inv.paymentMode || 'Cash'}
                             </span>
                           )}
-                        </td>
-                        <td>
-                          <button 
-                            onClick={() => exportInvoiceToPDF(inv)}
-                            className="btn-sm btn-primary"
-                            style={{padding:'6px 12px',fontSize:'12px'}}
-                          >
-                            📄 PDF
-                          </button>
                         </td>
                       </tr>
                     ))
