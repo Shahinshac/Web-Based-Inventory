@@ -7,10 +7,14 @@ pnpm-debug.log*
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+.env.backup
+!.env.example
 
 # Build outputs
 dist/
