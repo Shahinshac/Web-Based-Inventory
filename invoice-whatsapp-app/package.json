@@ -1,0 +1,21 @@
+{
+  "name": "invoice-whatsapp-app",
+  "version": "1.0.0",
+  "description": "A web application to send invoices via WhatsApp.",
+  "main": "src/app.ts",
+  "scripts": {
+    "start": "ts-node src/app.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "whatsapp-web.js": "^1.15.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.4",
+    "ts-node": "^10.4.0",
+    "nodemon": "^2.0.15"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
