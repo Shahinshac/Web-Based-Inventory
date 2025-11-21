@@ -30,7 +30,7 @@ export default function App(){
   const [stats, setStats] = useState({})
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showAddCustomer, setShowAddCustomer] = useState(false)
-  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, serialNo:'', barcode:'', autoFetchImage: true})
+  const [newProduct, setNewProduct] = useState({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, serialNo:'', barcode:''})
   const [newCustomer, setNewCustomer] = useState({name:'', phone:'', address:'', gstin:''})
   const [loading, setLoading] = useState(true)
   const [discount, setDiscount] = useState(0)
@@ -121,6 +121,7 @@ export default function App(){
   const [cashAmount, setCashAmount] = useState('');
   const [upiAmount, setUpiAmount] = useState('');
   const [cardAmount, setCardAmount] = useState('');
+  const [selectedSeller, setSelectedSeller] = useState(null);
   
   // Analytics data
   const [analyticsData, setAnalyticsData] = useState({
@@ -1293,95 +1294,226 @@ export default function App(){
       const invoiceDate = invoice.created_at || invoice.date || new Date();
       const dateObj = new Date(invoiceDate);
       
-      // Header
-      doc.setFontSize(20);
-      doc.text('INVOICE', 105, 20, { align: 'center' });
+      // Get customer info
+      const customerName = invoice.customer_name || invoice.customerName || 'Walk-in Customer';
+      const customerPhone = invoice.customerPhone || '';
+      const customerAddress = invoice.customerAddress || '';
+      const sellerName = invoice.createdByUsername || currentUser?.username || 'Unknown';
       
-      // Company Info
+      // Get payment info
+      const billPaymentMode = invoice.paymentMode || 'Cash';
+      const isSplitPayment = (billPaymentMode === 'split' || billPaymentMode === 'Split') && invoice.splitPaymentDetails;
+      const splitDetails = invoice.splitPaymentDetails;
+      
+      // Get totals
+      const subtotal = invoice.subtotal || 0;
+      const discountAmount = invoice.discountAmount || 0;
+      const discountPercent = invoice.discountPercent || 0;
+      const afterDiscount = invoice.afterDiscount || (subtotal - discountAmount);
+      const taxAmount = invoice.taxAmount || 0;
+      const taxRate = invoice.taxRate || 18;
+      const grandTotal = invoice.total || invoice.grandTotal || 0;
+      
+      // Header Section - Styled like print bill
+      doc.setFillColor(102, 126, 234); // Purple gradient color
+      doc.rect(0, 0, 210, 50, 'F');
+      
+      // Company Logo/Name
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(26);
+      doc.setFont(undefined, 'bold');
+      doc.text(companyInfo.logo || '⚡', 20, 20);
+      doc.text(companyInfo.name || 'Company Name', 35, 20);
+      
+      // TAX INVOICE Badge
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.text('TAX INVOICE', 170, 20, { align: 'right' });
+      
+      // Company Details
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text(companyInfo.address || '', 20, 28);
+      doc.text(`Phone: ${companyInfo.phone || ''} | Email: ${companyInfo.email || ''}`, 20, 34);
+      doc.text(`GSTIN: ${companyInfo.gstin || ''}`, 20, 40);
+      
+      // Invoice Meta Section
+      let currentY = 60;
+      doc.setFillColor(248, 249, 250); // Light gray background
+      doc.rect(0, currentY, 210, 40, 'F');
+      doc.setTextColor(0, 0, 0);
+      
+      // Bill To Section
       doc.setFontSize(10);
-      doc.text(companyInfo.name || 'Company Name', 20, 30);
-      doc.setFontSize(8);
-      doc.text(companyInfo.address || '', 20, 36);
-      doc.text(`Phone: ${companyInfo.phone || ''} | Email: ${companyInfo.email || ''}`, 20, 42);
-      doc.text(`GSTIN: ${companyInfo.gstin || ''}`, 20, 48);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(102, 126, 234);
+      doc.text('📋 BILL TO', 20, currentY + 8);
+      doc.setDrawColor(102, 126, 234);
+      doc.line(20, currentY + 10, 100, currentY + 10);
       
-      // Invoice Details
-      doc.setFontSize(10);
-      doc.text(`Invoice #: ${invoice.billNumber || invoice.id}`, 150, 30);
-      doc.text(`Date: ${dateObj.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}`, 150, 36);
-      doc.text(`Time: ${dateObj.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}`, 150, 42);
-      
-      // Customer Info
-      doc.text(`Customer: ${invoice.customer_name || 'Walk-in Customer'}`, 20, 58);
-      if (invoice.customerPhone) {
-        doc.text(`Phone: ${invoice.customerPhone}`, 20, 64);
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Name: ${customerName}`, 20, currentY + 16);
+      if (customerPhone) {
+        doc.text(`Phone: ${customerPhone}`, 20, currentY + 22);
+      }
+      if (customerAddress) {
+        doc.text(`Address: ${customerAddress}`, 20, currentY + 28);
       }
       
-      // Seller Info
-      doc.text(`Seller: ${invoice.createdByUsername || currentUser?.username || 'Unknown'}`, 150, 58);
+      // Invoice Details Section
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(102, 126, 234);
+      doc.text('📄 INVOICE DETAILS', 120, currentY + 8);
+      doc.line(120, currentY + 10, 190, currentY + 10);
       
-      // Items table
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Invoice #: ${invoice.billNumber || invoice.id || invoice._id}`, 120, currentY + 16);
+      doc.text(`Date: ${dateObj.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}`, 120, currentY + 22);
+      doc.text(`Time: ${dateObj.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', hour12: true})}`, 120, currentY + 28);
+      doc.text(`Seller: ${sellerName}`, 120, currentY + 34);
+      
+      // Items Table
+      currentY = 110;
       const items = invoice.items || [];
-      let startY = 75;
       
       if (items.length > 0) {
-        const tableData = items.map(item => [
-          item.productName || item.name || 'Unknown',
-          (item.quantity || 0).toString(),
-          `₹${(item.unitPrice || item.price || 0).toFixed(2)}`,
-          `₹${((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(2)}`
-        ]);
-        
-        doc.autoTable({
-          startY: startY,
-          head: [['Product', 'Qty', 'Unit Price', 'Total']],
-          body: tableData,
-          theme: 'grid',
-          styles: { fontSize: 9 }
+        const tableData = items.map((item, idx) => {
+          const product = products.find(p => p._id === item.productId || p._id?.toString() === item.productId?.toString());
+          const itemName = item.name || item.productName || 'Unknown';
+          const itemPrice = item.price || item.unitPrice || 0;
+          const itemQuantity = item.quantity || 0;
+          const hsnCode = item.hsnCode || product?.hsnCode || 'N/A';
+          return [
+            (idx + 1).toString(),
+            itemName,
+            hsnCode,
+            itemQuantity.toString(),
+            `₹${itemPrice.toFixed(2)}`,
+            `₹${(itemPrice * itemQuantity).toFixed(2)}`
+          ];
         });
         
-        startY = doc.lastAutoTable.finalY + 10;
+        doc.autoTable({
+          startY: currentY,
+          head: [['S.No', 'Product Description', 'HSN Code', 'Qty', 'Rate (₹)', 'Amount (₹)']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { 
+            fillColor: [74, 85, 104],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 9
+          },
+          styles: { 
+            fontSize: 8,
+            cellPadding: 3
+          },
+          columnStyles: {
+            0: { cellWidth: 15, halign: 'center' },
+            1: { cellWidth: 70 },
+            2: { cellWidth: 25, halign: 'center' },
+            3: { cellWidth: 20, halign: 'center' },
+            4: { cellWidth: 30, halign: 'right' },
+            5: { cellWidth: 30, halign: 'right' }
+          }
+        });
+        
+        currentY = doc.lastAutoTable.finalY + 10;
       } else {
-        doc.text('No items found', 20, startY);
-        startY += 10;
+        doc.text('No items found', 20, currentY);
+        currentY += 10;
       }
       
-      // Totals
-      doc.setFontSize(10);
-      doc.text(`Subtotal: ${formatCurrency(invoice.subtotal || 0)}`, 150, startY);
-      if (invoice.discountPercent > 0) {
-        doc.text(`Discount (${invoice.discountPercent || 0}%): -${formatCurrency(invoice.discountAmount || 0)}`, 150, startY + 7);
-        doc.text(`After Discount: ${formatCurrency(invoice.afterDiscount || (invoice.subtotal - invoice.discountAmount) || 0)}`, 150, startY + 14);
-        startY += 7;
+      // Calculations Section
+      const calcX = 160;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(calcX - 5, currentY - 5, 50, 50, 'FD');
+      
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text('Subtotal:', calcX, currentY);
+      doc.text(formatCurrency(subtotal), calcX + 30, currentY, { align: 'right' });
+      
+      if (discountPercent > 0) {
+        currentY += 6;
+        doc.setTextColor(217, 119, 6);
+        doc.text(`Discount (${discountPercent}%):`, calcX, currentY);
+        doc.text(`-${formatCurrency(discountAmount)}`, calcX + 30, currentY, { align: 'right' });
+        
+        currentY += 6;
+        doc.setTextColor(0, 0, 0);
+        doc.text('After Discount:', calcX, currentY);
+        doc.text(formatCurrency(afterDiscount), calcX + 30, currentY, { align: 'right' });
       }
-      doc.text(`GST (${invoice.taxRate || 18}%): ${formatCurrency(invoice.taxAmount || 0)}`, 150, startY + 7);
+      
+      currentY += 6;
+      doc.setTextColor(5, 150, 105);
+      doc.text(`GST (${taxRate}%):`, calcX, currentY);
+      doc.text(formatCurrency(taxAmount), calcX + 30, currentY, { align: 'right' });
+      
+      currentY += 8;
       doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
-      doc.text(`Grand Total: ${formatCurrency(invoice.total || 0)}`, 150, startY + 17);
+      doc.setTextColor(102, 126, 234);
+      doc.text('GRAND TOTAL:', calcX, currentY);
+      doc.text(formatCurrency(grandTotal), calcX + 30, currentY, { align: 'right' });
       
-      // Payment Method
-      const paymentY = startY + 27;
-      doc.setFontSize(10);
+      // Amount in Words
+      currentY += 12;
+      doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
-      const isSplitPayment = (invoice.paymentMode === 'split' || invoice.paymentMode === 'Split') && invoice.splitPaymentDetails;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, 'bold');
+      doc.text('Amount in Words:', 20, currentY);
+      doc.setFont(undefined, 'normal');
+      doc.text(`${numberToWords(Math.round(grandTotal))} Rupees Only`, 20, currentY + 6);
       
-      if (isSplitPayment && invoice.splitPaymentDetails) {
-        doc.text('Payment Method: Split Payment', 20, paymentY);
-        const splitY = paymentY + 7;
-        if (invoice.splitPaymentDetails.cashAmount > 0) {
-          doc.text(`  Cash: ${formatCurrency(invoice.splitPaymentDetails.cashAmount)}`, 20, splitY);
+      // Payment Details
+      currentY += 15;
+      const isSplit = isSplitPayment && splitDetails;
+      doc.setFont(undefined, 'bold');
+      doc.text('💰 Payment Method:', 20, currentY);
+      doc.setFont(undefined, 'normal');
+      
+      if (isSplit) {
+        currentY += 6;
+        doc.text('Split Payment', 20, currentY);
+        if (splitDetails.cashAmount > 0) {
+          currentY += 6;
+          doc.text(`  Cash: ${formatCurrency(splitDetails.cashAmount)}`, 20, currentY);
         }
-        if (invoice.splitPaymentDetails.upiAmount > 0) {
-          doc.text(`  UPI: ${formatCurrency(invoice.splitPaymentDetails.upiAmount)}`, 20, splitY + 7);
+        if (splitDetails.upiAmount > 0) {
+          currentY += 6;
+          doc.text(`  UPI: ${formatCurrency(splitDetails.upiAmount)}`, 20, currentY);
         }
-        if (invoice.splitPaymentDetails.cardAmount > 0) {
-          doc.text(`  Card: ${formatCurrency(invoice.splitPaymentDetails.cardAmount)}`, 20, splitY + 14);
+        if (splitDetails.cardAmount > 0) {
+          currentY += 6;
+          doc.text(`  Card: ${formatCurrency(splitDetails.cardAmount)}`, 20, currentY);
         }
       } else {
-        doc.text(`Payment Method: ${(invoice.paymentMode || 'Cash').toUpperCase()}`, 20, paymentY);
+        currentY += 6;
+        doc.text(billPaymentMode.toUpperCase(), 20, currentY);
       }
       
-      doc.save(`Invoice-${invoice.billNumber || invoice.id}.pdf`);
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFillColor(45, 55, 72);
+      doc.rect(0, pageHeight - 20, 210, 20, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.text('✨ Thank You For Your Business! ✨', 105, pageHeight - 12, { align: 'center' });
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.text(`This is a computer-generated invoice | For any queries, please contact us at ${companyInfo.phone}`, 105, pageHeight - 6, { align: 'center' });
+      
+      doc.save(`Invoice-${invoice.billNumber || invoice.id || invoice._id}.pdf`);
       showNotification('✅ Invoice PDF downloaded!', 'success');
     } catch (error) {
       console.error('PDF export error:', error);
@@ -1868,7 +2000,7 @@ export default function App(){
         upiAmount: splitPayment ? (parseFloat(upiAmount) || 0) : 0,
         cardAmount: splitPayment ? (parseFloat(cardAmount) || 0) : 0,
         userId: currentUser?.id || null,
-        username: isAdmin ? 'admin' : currentUser?.username
+        username: selectedSeller || (isAdmin ? 'admin' : currentUser?.username || 'Unknown')
       }
 
       // Handle online checkout
@@ -1907,7 +2039,7 @@ export default function App(){
               unitPrice: item.price
             })),
             date: new Date().toISOString(),
-            createdByUsername: isAdmin ? 'admin' : currentUser?.username || 'Unknown'
+            createdByUsername: selectedSeller || (isAdmin ? 'admin' : currentUser?.username || 'Unknown')
           });
           setShowBill(true);
           
@@ -1979,7 +2111,7 @@ export default function App(){
               unitPrice: item.price
             })),
             date: new Date().toISOString(),
-            createdByUsername: isAdmin ? 'admin' : currentUser?.username || 'Unknown',
+            createdByUsername: selectedSeller || (isAdmin ? 'admin' : currentUser?.username || 'Unknown'),
             isOffline: true
           };
           
@@ -2751,20 +2883,10 @@ export default function App(){
       if (res.ok) { 
         const result = await res.json();
         
-        // Handle image fetch result gracefully
-        let successMessage = `✓ Product "${newProduct.name}" added successfully!`;
-        if (newProduct.autoFetchImage) {
-          if (result.autoImageFetched) {
-            successMessage = `✓ Product "${newProduct.name}" added with image!`;
-          } else {
-            successMessage = `✓ Product "${newProduct.name}" added (image will be processed in background)`;
-          }
-        }
-          
-        showNotification(successMessage, 'success');
+        showNotification(`✓ Product "${newProduct.name}" added successfully!`, 'success');
         addActivity('Product Added', newProduct.name);
         setShowAddProduct(false); 
-        setNewProduct({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10, autoFetchImage: true}); 
+        setNewProduct({name:'', quantity:0, price:0, costPrice:0, hsnCode:'9999', minStock:10}); 
         
         // Refresh data
         await fetchProducts(); 
@@ -2799,42 +2921,6 @@ export default function App(){
     }
   }
 
-  // Auto-fetch image for existing product
-  async function autoFetchProductImage(productId, productName) {
-    try {
-      showNotification(`🔄 Fetching professional image for "${productName}"...`, 'info');
-      
-      const res = await fetch(API(`/api/products/${productId}/auto-photo`), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          userId: currentUser?.id || null,
-          username: isAdmin ? 'admin' : currentUser?.username
-        })
-      });
-      
-      if (res.ok) {
-        const result = await res.json();
-        showNotification(`✓ Professional image fetched for "${productName}"!`, 'success');
-        await fetchProducts(); // Refresh product list
-      } else {
-        const err = await res.json();
-        
-        // Handle specific error cases gracefully
-        if (err.error && err.error.includes('suitable image')) {
-          showNotification(`📷 Generated placeholder image for "${productName}". You can upload a custom image later.`, 'warning');
-        } else {
-          showNotification(`⚠️ Image fetch failed: ${err.error || 'Unknown error'}`, 'warning');
-        }
-        
-        // Still refresh products in case a fallback image was created
-        await fetchProducts();
-      }
-    } catch (e) {
-      console.error('Auto-fetch image error:', e);
-      showNotification(`❌ Failed to fetch image for "${productName}". Please check your internet connection.`, 'error');
-    }
-  }
 
   async function addCustomer(){
     try {
@@ -4068,6 +4154,25 @@ export default function App(){
                 </select>
               </div>
 
+              {/* Seller Selection */}
+              <div className="form-group">
+                <label>Seller:</label>
+                <select 
+                  value={selectedSeller || (isAdmin ? 'admin' : currentUser?.username || '')} 
+                  onChange={(e) => setSelectedSeller(e.target.value)}
+                >
+                  {isAdmin && <option value="admin">Admin</option>}
+                  {users.filter(u => u.approved).map(user => (
+                    <option key={user._id} value={user.username}>
+                      {user.username} {user.role !== 'cashier' ? `(${user.role})` : ''}
+                    </option>
+                  ))}
+                  {!isAdmin && currentUser && (
+                    <option value={currentUser.username}>{currentUser.username}</option>
+                  )}
+                </select>
+              </div>
+
               {/* Payment Mode */}
               <div className="form-group">
                 <label>Payment Mode:</label>
@@ -4441,31 +4546,6 @@ export default function App(){
                         >
                           📷
                         </button>
-                        {canEdit() && (
-                          <button
-                            onClick={() => requireAuth(() => autoFetchProductImage(prod.id, prod.name))}
-                            style={{
-                              position:'absolute',
-                              bottom:'-5px',
-                              right:'-5px',
-                              width:'24px',
-                              height:'24px',
-                              borderRadius:'50%',
-                              background:'#28a745',
-                              color:'white',
-                              border:'2px solid white',
-                              cursor:'pointer',
-                              fontSize:'10px',
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              padding:0
-                            }}
-                            title="Auto-fetch image from internet"
-                          >
-                            🌐
-                          </button>
-                        )}
                       </div>
                     </td>
                     <td style={{fontFamily:'monospace', fontSize:'0.9em'}}>
@@ -4762,20 +4842,13 @@ export default function App(){
             {/* Download Reports Section */}
             <div className="download-reports-section">
               <h3>📥 Download Reports</h3>
-              <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV or PDF format</p>
+              <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV format</p>
               <div className="download-buttons-grid">
                 <button onClick={downloadSalesReport} className="download-btn sales">
                   <span className="btn-icon">📊</span>
                   <div>
                     <strong>Sales Report (CSV)</strong>
                     <small>All invoices with profit details</small>
-                  </div>
-                </button>
-                <button onClick={exportTransactionsToPDF} className="download-btn sales">
-                  <span className="btn-icon">📄</span>
-                  <div>
-                    <strong>Transactions (PDF)</strong>
-                    <small>Professional PDF report</small>
                   </div>
                 </button>
                 <button onClick={downloadInventoryReport} className="download-btn inventory">
@@ -5338,18 +5411,6 @@ export default function App(){
                   onChange={(e)=>setNewProduct({...newProduct, hsnCode:e.target.value})}
                   placeholder="HSN/SAC code for GST"
                 />
-              </div>
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input 
-                    type="checkbox" 
-                    checked={newProduct.autoFetchImage}
-                    onChange={(e)=>setNewProduct({...newProduct, autoFetchImage:e.target.checked})}
-                  />
-                  <span className="checkmark"></span>
-                  Automatically fetch product image from internet
-                </label>
-                <small className="form-help">We'll try to find a suitable image based on the product name</small>
               </div>
               <div className="modal-actions">
                 <button type="submit" className="btn-primary">Add Product</button>

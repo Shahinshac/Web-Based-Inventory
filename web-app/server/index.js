@@ -554,7 +554,7 @@ app.post('/api/checkout', async (req, res) => {
 // Add Product
 app.post('/api/products', async (req, res) => {
   try {
-    const { name, quantity, price, costPrice, hsnCode, minStock, userId, username, autoFetchImage = true } = req.body;
+    const { name, quantity, price, costPrice, hsnCode, minStock, userId, username } = req.body;
     
     // Validate product data
     const productData = { name, quantity, price, costPrice, hsnCode, minStock };
@@ -585,23 +585,12 @@ app.post('/api/products', async (req, res) => {
     // Generate automatic barcode
     const barcodeValue = generateProductBarcode(name, productId);
     
-    // Attempt to auto-fetch product image
-    let autoFetchedPhoto = null;
-    if (autoFetchImage) {
-      try {
-        autoFetchedPhoto = await fetchProductImage(name);
-      } catch (error) {
-        logger.warn(`Failed to auto-fetch image for ${name}:`, error.message);
-      }
-    }
-    
-    // Update product with barcode and auto-fetched photo
+    // Update product with barcode
     await db.collection('products').updateOne(
       { _id: result.insertedId },
       { 
         $set: { 
-          barcode: barcodeValue,
-          photo: autoFetchedPhoto 
+          barcode: barcodeValue
         } 
       }
     );
@@ -614,15 +603,12 @@ app.post('/api/products', async (req, res) => {
       quantity,
       price,
       costPrice,
-      autoImage: autoFetchedPhoto ? 'success' : 'failed'
     });
     
     res.json({ 
       id: productId, 
       ...product,
       barcode: barcodeValue,
-      photo: autoFetchedPhoto,
-      autoImageFetched: !!autoFetchedPhoto
     });
   } catch (e) {
     logger.error(e);
@@ -848,64 +834,6 @@ app.post('/api/products/:id/photo', upload.single('photo'), async (req, res) => 
   }
 });
 
-// Auto-fetch product photo from internet
-app.post('/api/products/:id/auto-photo', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { userId, username } = req.body;
-    const db = getDB();
-    
-    const product = await db.collection('products').findOne({ _id: new ObjectId(id) });
-    
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    // Delete old photo if exists
-    if (product.photo) {
-      try {
-        await fs.unlink(path.join(__dirname, 'uploads', 'products', path.basename(product.photo)));
-      } catch (err) {
-        logger.warn('Failed to delete old photo:', err.message);
-      }
-    }
-    
-    // Fetch new image
-    const autoFetchedPhoto = await fetchProductImage(product.name);
-    
-    if (!autoFetchedPhoto) {
-      return res.status(404).json({ error: 'Could not find suitable image for this product' });
-    }
-    
-    await db.collection('products').updateOne(
-      { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          photo: autoFetchedPhoto,
-          lastModifiedBy: userId || null,
-          lastModifiedByUsername: username || 'Unknown',
-          lastModified: new Date()
-        } 
-      }
-    );
-    
-    // Log audit trail
-    await logAudit(db, 'PRODUCT_PHOTO_AUTO_FETCHED', userId, username, {
-      productId: id,
-      productName: product.name,
-      photoUrl: autoFetchedPhoto
-    });
-    
-    res.json({ 
-      success: true, 
-      photo: autoFetchedPhoto,
-      message: 'Product photo auto-fetched successfully' 
-    });
-  } catch (e) {
-    logger.error(e);
-    res.status(500).json({ error: e.message });
-  }
-});
 
 // Delete product photo
 app.delete('/api/products/:id/photo', async (req, res) => {
