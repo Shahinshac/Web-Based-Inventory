@@ -2593,6 +2593,85 @@ export default function App(){
     printWindow.document.write(billHTML);
     printWindow.document.close();
   }
+
+  // WhatsApp helpers: format phone, create/ensure public invoice link, build message and open click-to-chat
+  function formatPhoneForWhatsApp(phone) {
+    if (!phone) return null;
+    let digits = ('' + phone).replace(/\D/g, '');
+    // If 10 digits assume local (prepend country code from companyInfo or default to 91)
+    if (digits.length === 10) {
+      const m = (companyInfo.phone || '').match(/\+?(\d{1,3})/);
+      digits = (m ? m[1] : '91') + digits;
+    }
+    if (digits.length < 8 || digits.length > 15) return null;
+    return digits;
+  }
+
+  async function ensurePublicInvoiceUrl(invoice) {
+    if (!invoice) return null;
+    if (invoice.publicUrl) return invoice.publicUrl;
+    try {
+      const id = invoice.id || invoice.billId || invoice.billNumber;
+      const res = await fetch(API(`/api/invoices/${id}/public`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestedBy: currentUser?.username || 'system' })
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      return j.publicUrl || null;
+    } catch (e) {
+      console.debug('Public invoice fetch failed', e);
+      return null;
+    }
+  }
+
+  async function buildInvoiceWhatsAppMessage(invoice) {
+    const publicUrl = await ensurePublicInvoiceUrl(invoice);
+    const customer = invoice.customer_name || invoice.customerName || (invoice.customer && invoice.customer.name) || 'Customer';
+    const id = invoice.id || invoice.billNumber || invoice.billId || '';
+    const total = (invoice.total || invoice.grandTotal || invoice.totalAmount || 0);
+    const due = invoice.dueDate || '';
+    const itemsSummary = (invoice.items || []).slice(0,5).map(it => `${it.quantity}× ${it.name || it.productName || ''}`).join(', ');
+    const url = publicUrl || `${window.location.origin}/invoices/${id}`;
+    let msg = `Hello ${customer},\nHere is your invoice #${id} for ₹${fmt1(total)}.\n`;
+    if (itemsSummary) msg += `Items: ${itemsSummary}\n`;
+    if (due) msg += `Due: ${due}\n`;
+    msg += `View invoice: ${url}\n\nThank you!\n${companyInfo.name}`;
+    return encodeURIComponent(msg);
+  }
+
+  async function sendInvoiceWhatsApp(invoice) {
+    const phone = invoice.customerPhone || invoice.customer_phone || (invoice.customer && (invoice.customer.phone || invoice.customerPhone)) || '';
+    const cleaned = formatPhoneForWhatsApp(phone);
+    if (!cleaned) {
+      showNotification('❌ Customer phone missing or invalid', 'error');
+      return;
+    }
+
+    const text = await buildInvoiceWhatsAppMessage(invoice);
+    const url = `https://wa.me/${cleaned}?text=${text}`;
+    window.open(url, '_blank');
+
+    // Best-effort audit log (non-blocking)
+    try {
+      fetch(API('/api/audit-logs'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'whatsapp_invoice_opened',
+          username: currentUser?.username || 'unknown',
+          invoiceId: invoice.id || invoice.billId || invoice.billNumber || null,
+          phone: cleaned,
+          total: invoice.total || invoice.grandTotal || null,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(()=>{});
+    } catch(e) {}
+
+    addActivity('WhatsApp Invoice Opened', `Invoice ${invoice.id || invoice.billNumber} -> ${cleaned}`);
+    showNotification('Opening WhatsApp with invoice message...', 'info');
+  }
   
   // Convert number to words (Indian system)
   function numberToWords(num) {
@@ -4768,12 +4847,13 @@ export default function App(){
                     <th>GST</th>
                     <th>Total</th>
                     <th>Payment</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getFilteredInvoices().length === 0 ? (
                     <tr>
-                      <td colSpan="9" style={{textAlign:'center',padding:'40px',color:'#999'}}>
+                      <td colSpan="10" style={{textAlign:'center',padding:'40px',color:'#999'}}>
                         No invoices found for selected period
                       </td>
                     </tr>
@@ -4791,6 +4871,21 @@ export default function App(){
                             <br/>
                             <small style={{color:'#888'}}>₹{(inv.discountAmount || 0).toFixed(1)}</small>
                           </span>
+                        </td>
+                        <td style={{whiteSpace:'nowrap'}}>
+                          <button
+                            onClick={() => sendInvoiceWhatsApp(inv)}
+                            title="Send invoice via WhatsApp"
+                            style={{padding:'6px 10px', background:'#25D366', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', marginRight:'6px'}}
+                          >
+                            📲 WhatsApp
+                          </button>
+                          <button
+                            onClick={() => { setLastBill(inv); setShowBill(true); }}
+                            style={{padding:'6px 10px', background:'#667eea', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                          >
+                            🔍 View
+                          </button>
                         </td>
                         <td>
                           <span style={{color:'#27ae60',fontSize:'13px'}}>
@@ -5381,6 +5476,16 @@ export default function App(){
 
             <div className="modal-actions" style={{marginTop:'20px'}}>
               <button onClick={printBill} className="btn-primary">🖨️ Print Bill</button>
+              <button
+                onClick={() => {
+                  if (!lastBill) return;
+                  sendInvoiceWhatsApp(lastBill);
+                }}
+                className="btn-primary"
+                style={{background:'#25D366', marginLeft:'8px'}}
+              >
+                📲 Send via WhatsApp
+              </button>
               <button onClick={()=>setShowBill(false)} className="btn-secondary">Close</button>
             </div>
           </div>
