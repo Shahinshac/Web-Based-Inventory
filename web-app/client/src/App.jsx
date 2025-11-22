@@ -142,7 +142,7 @@ export default function App(){
             <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in PDF format</p>
   
   // Admin password from secure environment variable
-  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'defaultpass123'
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'shaahnc'
 
   // Helper function to track tab changes
   const handleTabChange = (newTab) => {
