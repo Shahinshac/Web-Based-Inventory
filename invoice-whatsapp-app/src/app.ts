@@ -37,10 +37,30 @@ app.get('/invoices', (req: Request, res: Response) => {
         </ul>
         <script>
             function sendWhatsApp(invoiceId) {
-                const invoice = ${JSON.stringify(invoices)}.find(inv => inv.id === invoiceId);
-                const customer = ${JSON.stringify(customers)}.find(cust => cust.id === invoice.customerId);
-                // build message on the client side using the invoice & customer objects
-                const message = "Hello " + customer.name + ",\n\nYour invoice of amount $" + invoice.amount + " is ready. Thank you!";
+                // Use fresh copies of the invoices/customers arrays so we avoid any stale values
+                const invoicesArr = ${JSON.stringify(invoices)};
+                const customersArr = ${JSON.stringify(customers)};
+                const invoice = invoicesArr.find(inv => inv.id === invoiceId);
+                const customer = customersArr.find(cust => cust.id === invoice.customerId);
+
+                // Generate the message at click-time so the time/timestamp is fresh for each send
+                const now = new Date();
+                // Use a readable local timestamp — change to toISOString() if you prefer ISO format
+                const timestamp = now.toLocaleString();
+
+                const messageLines = [
+                    'Hello ' + customer.name + ',',
+                    '',
+                    'Your invoice is ready.',
+                    'Invoice ID: ' + invoice.id,
+                    'Amount: $' + invoice.amount,
+                    'Date: ' + (invoice.date || timestamp),
+                    'Sent at: ' + timestamp,
+                    '',
+                    'Thank you!'
+                ];
+
+                const message = messageLines.join('\n');
                 const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(message);
                 window.open(whatsappUrl, '_blank');
             }
