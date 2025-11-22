@@ -119,6 +119,7 @@ export default function App(){
   // Multiple payment methods
   const [splitPayment, setSplitPayment] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [upiAmount, setUpiAmount] = useState('');
   const [cardAmount, setCardAmount] = useState('');
   const [selectedSeller, setSelectedSeller] = useState(null);
@@ -5479,7 +5480,22 @@ export default function App(){
         <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('products') }} className={tab==='products' ? 'active' : ''}><div>📦</div><small>Products</small></button>
         <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('customers') }} className={tab==='customers' ? 'active' : ''}><div>👥</div><small>Customers</small></button>
         <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('invoices') }} className={tab==='invoices' ? 'active' : ''}><div>🧾</div><small>Invoices</small></button>
+        <button aria-label="More" onClick={()=>setShowMobileMore(true)}><div>⋯</div><small>More</small></button>
       </div>
+
+      {showMobileMore && (
+        <div className="mobile-more-overlay" onClick={()=>setShowMobileMore(false)}>
+          <div className="mobile-more-sheet" onClick={e=>e.stopPropagation()}>
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('inventory') }}>📊 Inventory</button>
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()){ handleTabChange('analytics'); fetchAnalyticsData(analyticsDateRange); } }}>📈 Analytics</button>
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('reports') }}>📁 Reports</button>
+            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('users'); fetchUsers() }}>👤 Users</button>}
+            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('audit'); fetchAuditLogs() }}>📋 Audit Logs</button>}
+            <div style={{height:8}} />
+            <button className="btn-secondary" onClick={()=>setShowMobileMore(false)}>Close</button>
+          </div>
+        </div>
+      )}
 
       {/* Add Product Modal */}
       {showAddProduct && (

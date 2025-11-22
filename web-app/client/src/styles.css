@@ -1684,6 +1684,13 @@ ul:not(.products):not(.cart) li:hover {
   }
 }
 
+/* Mobile More Sheet */
+.mobile-more-overlay { position: fixed; left: 0; right:0; top:0; bottom:0; background: rgba(0,0,0,0.4); z-index:10020; display:flex; align-items:flex-end; justify-content:center }
+.mobile-more-sheet { width:100%; max-width:560px; background:white; border-radius:16px 16px 8px 8px; padding:14px; box-shadow:0 -6px 40px rgba(0,0,0,0.16); display:flex; flex-direction:column; gap:10px; margin:12px }
+.mobile-more-sheet button { padding:12px 14px; border-radius:10px; border:none; background:transparent; text-align:left; font-weight:700; font-size:15px; color:#333; cursor:pointer }
+.mobile-more-sheet button:hover { background:#f4f6fb }
+.mobile-more-sheet .btn-secondary { background:#f3f4f6; color:#111; padding:10px }
+
 /* Mobile bottom nav (visible on phones) */
 .mobile-bottom-nav { display:none; }
 @media (max-width: 768px) {
