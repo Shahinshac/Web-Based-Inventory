@@ -175,43 +175,21 @@ export default function Login(props) {
             </div>
           </div>
 
-          <div className="tab-bar">
-            <button className={`tab-btn ${showLoginPage ? 'active' : ''}`} onClick={() => setShowLoginPage(true)}><Icon name="lock" size={16} /> <span>Login</span></button>
-            <button className={`tab-btn ${!showLoginPage ? 'active' : ''}`} onClick={() => setShowLoginPage(false)}><Icon name="add" size={16} /> <span>Register</span></button>
-          </div>
-
           <div className="card-body animated-panel">
-            {showLoginPage ? (
-              <div>
-                <h3><Icon name="spark" size={20} /> Welcome Back!</h3>
-                <p className="muted">Please login to continue to your account</p>
-                <LoginForm
-                  authUsername={authUsername}
-                  authPassword={authPassword}
-                  setAuthUsername={setAuthUsername}
-                  setAuthPassword={setAuthPassword}
-                  authError={authError}
-                  handleAuth={handleAuth}
-                />
+            <div>
+              <h3><Icon name="spark" size={20} /> Welcome Back!</h3>
+              <p className="muted">Please login to continue to your account</p>
+              <LoginForm
+                authUsername={authUsername}
+                authPassword={authPassword}
+                setAuthUsername={setAuthUsername}
+                setAuthPassword={setAuthPassword}
+                authError={authError}
+                handleAuth={handleAuth}
+              />
 
-                <div className="info-box"><Icon name="spark" size={16} /> Admin credentials required for owner access</div>
-              </div>
-            ) : (
-              <div>
-                <h3><Icon name="spark" size={20} /> Create Account</h3>
-                <p className="muted">Sign up to start managing your inventory</p>
-                <RegisterForm
-                  registerUsername={registerUsername}
-                  registerPassword={registerPassword}
-                  setRegisterUsername={setRegisterUsername}
-                  setRegisterPassword={setRegisterPassword}
-                  registerError={registerError}
-                  handleRegister={handleRegister}
-                />
-
-                <div className="info-box"><Icon name="check" size={16} /> Admin will review and approve your access</div>
-              </div>
-            )}
+              <div className="info-box"><Icon name="spark" size={16} /> Admin credentials required for owner access</div>
+            </div>
           </div>
         </div>
       </div>
