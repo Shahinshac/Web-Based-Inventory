@@ -142,7 +142,7 @@ export default function App(){
             <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in PDF format</p>
   
   // Admin password from secure environment variable
-  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'shaahnc'
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'defaultpass123'
 
   // Helper function to track tab changes
   const handleTabChange = (newTab) => {
@@ -780,82 +780,33 @@ export default function App(){
     // Accept an optional event and only preventDefault if an event was passed.
     if (e && typeof e.preventDefault === 'function') e.preventDefault()
     
-    // Admin login path: try server-side auth first (preferred), fallback to local ADMIN_PASSWORD
-    if (String(authUsername).toLowerCase() === 'admin') {
-      let adminAuthenticated = false
-
-      try {
-        // Attempt server login for admin (works when an admin user exists in DB)
-        if (isOnline) {
-          const serverRes = await fetch(API('/api/users/login'), {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ username: authUsername, password: authPassword })
-          })
-
-          if (serverRes.ok) {
-            const serverData = await serverRes.json()
-            if (serverData.user) {
-              adminAuthenticated = true
-              const adminUser = serverData.user
-
-              localStorage.setItem('currentUser', JSON.stringify(adminUser))
-              localStorage.setItem('isAdmin', 'true')
-              localStorage.setItem('userRole', adminUser.role || 'admin')
-
-              setIsAuthenticated(true)
-              setIsAdmin(true)
-              setUserRole(adminUser.role || 'admin')
-              setCurrentUser(adminUser)
-              setShowAuthModal(false)
-              setAuthError('')
-              setAuthUsername('')
-              setAuthPassword('')
-
-              alert(`✅ Admin authenticated (server) — welcome ${adminUser.username}!`)
-              fetchUsers()
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Admin server-auth attempt failed, falling back to local password check', err)
+    // Check if admin login
+    if (authUsername === 'admin' && authPassword === ADMIN_PASSWORD) {
+      // Admin login
+      const adminUser = { username: 'admin', role: 'admin', approved: true }
+      
+      localStorage.setItem('currentUser', JSON.stringify(adminUser))
+      localStorage.setItem('isAdmin', 'true')
+      localStorage.setItem('userRole', 'admin')
+      
+      setIsAuthenticated(true)
+      setIsAdmin(true)
+      setUserRole('admin')
+      setCurrentUser(adminUser)
+      setShowAuthModal(false)
+      setAuthError('')
+      setAuthUsername('')
+      setAuthPassword('')
+      
+      alert(`✅ Admin authenticated successfully!`)
+      
+      fetchUsers()
+      
+      if (pendingAction) {
+        pendingAction()
+        setPendingAction(null)
       }
-
-      // Fallback: local ADMIN_PASSWORD (useful for standalone/offline or when env var is set on client)
-      if (!adminAuthenticated && authPassword === ADMIN_PASSWORD) {
-        adminAuthenticated = true
-        const adminUser = { username: 'admin', role: 'admin', approved: true }
-
-        localStorage.setItem('currentUser', JSON.stringify(adminUser))
-        localStorage.setItem('isAdmin', 'true')
-        localStorage.setItem('userRole', 'admin')
-
-        setIsAuthenticated(true)
-        setIsAdmin(true)
-        setUserRole('admin')
-        setCurrentUser(adminUser)
-        setShowAuthModal(false)
-        setAuthError('')
-        setAuthUsername('')
-        setAuthPassword('')
-
-        alert(`✅ Admin authenticated (local)`) 
-        fetchUsers()
-      }
-
-      if (adminAuthenticated) {
-        if (pendingAction) {
-          pendingAction()
-          setPendingAction(null)
-        }
-        return
-      }
-
-      // If admin not authenticated, proceed to regular user flow which will show errors
-    }
-
-    // Regular user login
-    {
+    } else {
       // Regular user login
       try {
         const res = await fetch(API('/api/users/login'), {
