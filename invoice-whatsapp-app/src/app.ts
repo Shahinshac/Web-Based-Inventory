@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { Invoice, Customer } from './types';
 
 const app = express();
@@ -9,13 +9,13 @@ app.use(express.json());
 
 // Sample data for invoices and customers
 const invoices: Invoice[] = [
-    { id: 1, amount: 100, customerId: 1 },
-    { id: 2, amount: 200, customerId: 2 },
+    { id: 1, amount: 100, customerId: 1, date: '2025-11-01', status: 'pending' },
+    { id: 2, amount: 200, customerId: 2, date: '2025-11-02', status: 'paid' },
 ];
 
 const customers: Customer[] = [
-    { id: 1, name: 'John Doe', phone: '+1234567890' },
-    { id: 2, name: 'Jane Smith', phone: '+0987654321' },
+    { id: 1, name: 'John Doe', phoneNumber: '+1234567890', email: 'john@example.com' },
+    { id: 2, name: 'Jane Smith', phoneNumber: '+0987654321', email: 'jane@example.com' },
 ];
 
 // Function to generate default message
@@ -24,7 +24,7 @@ const generateDefaultMessage = (invoice: Invoice, customer: Customer): string =>
 };
 
 // Endpoint to render invoices and WhatsApp button
-app.get('/invoices', (req, res) => {
+app.get('/invoices', (req: Request, res: Response) => {
     res.send(`
         <h1>Invoices</h1>
         <ul>
@@ -39,7 +39,8 @@ app.get('/invoices', (req, res) => {
             function sendWhatsApp(invoiceId) {
                 const invoice = ${JSON.stringify(invoices)}.find(inv => inv.id === invoiceId);
                 const customer = ${JSON.stringify(customers)}.find(cust => cust.id === invoice.customerId);
-                const message = "${generateDefaultMessage(invoice, customer)}";
+                // build message on the client side using the invoice & customer objects
+                const message = "Hello " + customer.name + ",\n\nYour invoice of amount $" + invoice.amount + " is ready. Thank you!";
                 const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(message);
                 window.open(whatsappUrl, '_blank');
             }
