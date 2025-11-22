@@ -1859,7 +1859,7 @@ async function initializeAdminUser() {
     
     // Get admin credentials from environment variables
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'defaultpass123';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'shaahnc';
     
     // Check if your original admin account exists
     const existingAdmin = await usersCollection.findOne({ username: adminUsername });
