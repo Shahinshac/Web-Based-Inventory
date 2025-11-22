@@ -2691,168 +2691,7 @@ button, .products li, .stat-card {
   }
 }
 
-/* ==================== DARK MODE ==================== */
 
-.dark-mode {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode body {
-  background: #1a1a2e !important;
-}
-
-.dark-mode .container {
-  background: #2d3748 !important;
-  color: #e0e0e0 !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-}
-
-.dark-mode .tabs {
-  background: #1a202c !important;
-}
-
-.dark-mode .tabs button {
-  color: #a0aec0 !important;
-  background: transparent !important;
-}
-
-.dark-mode .tabs button.active {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
-  color: #fff !important;
-}
-
-.dark-mode .tabs button:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-.dark-mode .stat-card {
-  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode table {
-  background: #2d3748 !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode table thead {
-  background: #1a202c !important;
-  color: #fff !important;
-}
-
-.dark-mode table tr:hover {
-  background: #374151 !important;
-}
-
-.dark-mode table tr {
-  border-bottom: 1px solid #4a5568 !important;
-}
-
-.dark-mode .pos .left,
-.dark-mode .pos .cart {
-  background: #2d3748 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode .products li {
-  background: #1a202c !important;
-  border: 1px solid #4a5568 !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .products li:hover {
-  background: #374151 !important;
-  transform: translateY(-2px);
-}
-
-.dark-mode .cart-item {
-  background: #1a202c !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode input,
-.dark-mode select,
-.dark-mode textarea {
-  background: #1a202c !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode input:focus,
-.dark-mode select:focus,
-.dark-mode textarea:focus {
-  border-color: #667eea !important;
-  background: #2d3748 !important;
-}
-
-.dark-mode .modal-content {
-  background: #2d3748 !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode .modal-overlay {
-  background: rgba(0, 0, 0, 0.8) !important;
-}
-
-.dark-mode .btn-secondary {
-  background: #4a5568 !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .btn-secondary:hover {
-  background: #5a6778 !important;
-}
-
-.dark-mode h2,
-.dark-mode h3,
-.dark-mode h4,
-.dark-mode label {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .login-container {
-  background: #2d3748 !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode .copyright-footer {
-  background: #1a202c !important;
-  color: #a0aec0 !important;
-  border-top: 1px solid #4a5568 !important;
-}
-
-.dark-mode .notification {
-  background: #2d3748 !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode .notification.success {
-  background: #22543d !important;
-  border-color: #38a169 !important;
-}
-
-.dark-mode .notification.error {
-  background: #742a2a !important;
-  border-color: #e53e3e !important;
-}
-
-.dark-mode .quick-actions-menu {
-  background: #2d3748 !important;
-  border: 1px solid #4a5568 !important;
-}
-
-.dark-mode .quick-actions-menu-item {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .quick-actions-menu-item:hover {
-  background: #374151 !important;
-}
 
 
 /* ==================== LOGIN/REGISTER POPUP ANIMATIONS ==================== */
@@ -3010,57 +2849,7 @@ button, .products li, .stat-card {
   margin-top: 4px;
 }
 
-.dark-mode .form-help {
-  color: #aaa;
-}
-
-/* ==================== ENHANCED UI/UX IMPROVEMENTS ==================== */
-
-/* Improved Dark Mode with Modern Gradients */
-.dark-mode {
-  background: #0d1117 !important;
-  color: #c9d1d9 !important;
-}
-
-.dark-mode .app {
-  background: #0d1117 !important;
-}
-
-.dark-mode header {
-  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-  border-bottom: 1px solid #30363d !important;
-}
-
-.dark-mode main {
-  background: transparent !important;
-}
-
-.dark-mode .stat-card {
-  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%) !important;
-  border: 1px solid #30363d !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-  transition: all 0.3s ease !important;
-}
-
-.dark-mode .stat-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 12px 32px rgba(88, 101, 242, 0.3) !important;
-  border-color: #5865f2 !important;
-}
-
-.dark-mode .stat-icon {
-  background: linear-gradient(135deg, #5865f2 0%, #a855f7 100%) !important;
-}
-
-.dark-mode h2 {
-  color: #c9d1d9 !important;
-  border-bottom-color: #5865f2 !important;
-}
-
-.dark-mode h3 {
-  color: #58a6ff !important;
-}
+/* Dark-mode styles removed */
 
 /* Enhanced Table Styles with Better Responsive Design */
 table {
@@ -3120,29 +2909,6 @@ table tbody tr:last-child td {
   border-bottom: none;
 }
 
-/* Dark Mode Table Enhancements */
-.dark-mode table {
-  background: #161b22 !important;
-  color: #c9d1d9 !important;
-  border: 1px solid #30363d !important;
-}
-
-.dark-mode table thead {
-  background: linear-gradient(135deg, #5865f2 0%, #a855f7 100%) !important;
-}
-
-.dark-mode table td {
-  border-bottom-color: #30363d !important;
-}
-
-.dark-mode table tbody tr {
-  border-bottom-color: #30363d !important;
-}
-
-.dark-mode table tbody tr:hover {
-  background: linear-gradient(135deg, #1c2128 0%, #22272e 100%) !important;
-  box-shadow: 0 2px 12px rgba(88, 101, 242, 0.2) !important;
-}
 
 /* Responsive Table Container */
 .table-container {
@@ -3167,13 +2933,6 @@ table tbody tr:last-child td {
   border-radius: 10px;
 }
 
-.dark-mode .table-container::-webkit-scrollbar-track {
-  background: #0d1117;
-}
-
-.dark-mode .table-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #5865f2 0%, #a855f7 100%);
-}
 
 /* Enhanced Button Styles */
 button {
@@ -3189,34 +2948,6 @@ button:active {
   transform: translateY(0);
 }
 
-.dark-mode button {
-  background: linear-gradient(135deg, #5865f2 0%, #a855f7 100%) !important;
-  border: none !important;
-  color: white !important;
-}
-
-.dark-mode button:hover {
-  background: linear-gradient(135deg, #4752c4 0%, #9333ea 100%) !important;
-  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.4) !important;
-}
-
-.dark-mode .btn-secondary {
-  background: linear-gradient(135deg, #30363d 0%, #21262d 100%) !important;
-  border: 1px solid #484f58 !important;
-}
-
-.dark-mode .btn-secondary:hover {
-  background: linear-gradient(135deg, #484f58 0%, #30363d 100%) !important;
-}
-
-.dark-mode .btn-danger {
-  background: linear-gradient(135deg, #da3633 0%, #f85149 100%) !important;
-}
-
-.dark-mode .btn-danger:hover {
-  background: linear-gradient(135deg, #c93633 0%, #e73c49 100%) !important;
-  box-shadow: 0 8px 20px rgba(248, 81, 73, 0.4) !important;
-}
 
 /* Enhanced Card Styles */
 .pos .left,
@@ -3227,42 +2958,9 @@ button:active {
   transition: all 0.3s ease;
 }
 
-.dark-mode .pos .left,
-.dark-mode .pos .right {
-  background: #161b22 !important;
-  border: 1px solid #30363d !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
-}
 
-.dark-mode .products li {
-  background: linear-gradient(135deg, #1c2128 0%, #22272e 100%) !important;
-  border: 1px solid #30363d !important;
-  color: #c9d1d9 !important;
-}
-
-.dark-mode .products li:hover {
-  background: linear-gradient(135deg, #22272e 0%, #2d333b 100%) !important;
-  border-color: #5865f2 !important;
-  box-shadow: 0 4px 16px rgba(88, 101, 242, 0.3) !important;
-}
 
 /* Enhanced Input Styles */
-.dark-mode input,
-.dark-mode select,
-.dark-mode textarea {
-  background: #0d1117 !important;
-  color: #c9d1d9 !important;
-  border: 1px solid #30363d !important;
-  transition: all 0.3s ease !important;
-}
-
-.dark-mode input:focus,
-.dark-mode select:focus,
-.dark-mode textarea:focus {
-  border-color: #5865f2 !important;
-  background: #161b22 !important;
-  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1) !important;
-}
 
 /* Hidden Scrollbars for Aesthetics */
 .products::-webkit-scrollbar,
@@ -3281,10 +2979,6 @@ button:active {
   border-radius: 10px;
 }
 
-.dark-mode .products::-webkit-scrollbar-thumb,
-.dark-mode .cart::-webkit-scrollbar-thumb {
-  background: rgba(88, 101, 242, 0.3);
-}
 
 /* Responsive Typography */
 @media (max-width: 768px) {
@@ -3343,16 +3037,7 @@ button:active {
 }
 
 /* Enhanced Modal Styles */
-.dark-mode .modal-content {
-  background: #161b22 !important;
-  border: 1px solid #30363d !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
-}
-
-.dark-mode .modal-overlay {
-  background: rgba(0, 0, 0, 0.85) !important;
-  backdrop-filter: blur(4px) !important;
-}
+/* dark-mode modal styles removed */
 
 /* Enhanced Notification Styles */
 .notification {
@@ -3362,28 +3047,7 @@ button:active {
   animation: slideInRight 0.3s ease;
 }
 
-.dark-mode .notification {
-  background: #161b22 !important;
-  border: 1px solid #30363d !important;
-}
-
-.dark-mode .notification.success {
-  background: linear-gradient(135deg, #1a4d2e 0%, #2d5a3f 100%) !important;
-  border-color: #3fb950 !important;
-  box-shadow: 0 8px 24px rgba(63, 185, 80, 0.2) !important;
-}
-
-.dark-mode .notification.error {
-  background: linear-gradient(135deg, #4d1a1a 0%, #5a2d2d 100%) !important;
-  border-color: #f85149 !important;
-  box-shadow: 0 8px 24px rgba(248, 81, 73, 0.2) !important;
-}
-
-.dark-mode .notification.warning {
-  background: linear-gradient(135deg, #4d3d1a 0%, #5a4a2d 100%) !important;
-  border-color: #d29922 !important;
-  box-shadow: 0 8px 24px rgba(210, 153, 34, 0.2) !important;
-}
+/* dark-mode notification styles removed */
 
 /* Loading State Enhancement */
 .btn-complete-sale:disabled {
@@ -3418,9 +3082,7 @@ button:active {
   color: #333;
 }
 
-.dark-mode .form-group label {
-  color: #c9d1d9 !important;
-}
+/* dark-mode form label styles removed */
 
 /* Icon Alignment */
 .stat-icon {
@@ -3435,20 +3097,7 @@ button:active {
 }
 
 /* Better Contrast for Dark Mode Buttons */
-.dark-mode header nav button {
-  background: rgba(88, 101, 242, 0.1) !important;
-  border: 1px solid transparent !important;
-}
-
-.dark-mode header nav button:hover {
-  background: rgba(88, 101, 242, 0.2) !important;
-  border-color: #5865f2 !important;
-}
-
-.dark-mode header nav button.active {
-  background: linear-gradient(135deg, #5865f2 0%, #a855f7 100%) !important;
-  border: none !important;
-}
+/* dark-mode header nav styles removed */
 
 /* Enhanced Stats Grid */
 .stats-grid {

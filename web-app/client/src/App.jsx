@@ -109,10 +109,7 @@ export default function App(){
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState(null)
   
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved === 'true';
-  });
+  // Dark mode removed — UI will always use the default (light) theme.
   
   // Checkout loading state
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -3515,7 +3512,7 @@ export default function App(){
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : ''}`}>
+    <div className={`app`}>
       {/* PWA Install Prompt */}
       {showInstallPrompt && (
         <div style={{
@@ -3674,35 +3671,7 @@ export default function App(){
         </div>
       )}
 
-      {/* Dark Mode Toggle Button */}
-      {isAuthenticated && (
-        <button
-          onClick={() => {
-            const newMode = !darkMode;
-            setDarkMode(newMode);
-            localStorage.setItem('darkMode', newMode);
-          }}
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: 9999,
-            background: darkMode ? '#fff' : '#333',
-            color: darkMode ? '#333' : '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '50px',
-            height: '50px',
-            fontSize: '24px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            transition: 'all 0.3s'
-          }}
-          title={darkMode ? 'Light Mode' : 'Dark Mode'}
-        >
-          {darkMode ? '☀️' : '🌙'}
-        </button>
-      )}
+      {/* Dark theme removed — no UI toggle shown */}
 
       {/* PWA Install Button */}
       {isAuthenticated && showInstallPrompt && (
