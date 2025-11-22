@@ -776,7 +776,9 @@ export default function App(){
 
   // Handle authentication (permanent session until logout)
   async function handleAuth(e) {
-    e.preventDefault()
+    // `Login.jsx` calls this handler without forwarding the event object.
+    // Accept an optional event and only preventDefault if an event was passed.
+    if (e && typeof e.preventDefault === 'function') e.preventDefault()
     
     // Check if admin login
     if (authUsername === 'admin' && authPassword === ADMIN_PASSWORD) {
@@ -876,7 +878,9 @@ export default function App(){
 
   // Step 3: Complete Registration
   async function handleRegister(e) {
-    e.preventDefault()
+    // `RegisterForm` calls this handler without forwarding the event object.
+    // Accept an optional event and only preventDefault if an event was passed.
+    if (e && typeof e.preventDefault === 'function') e.preventDefault()
 
     if (registerUsername.length < 3) {
       setRegisterError('Username must be at least 3 characters.')
