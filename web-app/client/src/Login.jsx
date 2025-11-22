@@ -92,33 +92,16 @@ function LoginForm({ authUsername, authPassword, setAuthUsername, setAuthPasswor
   )
 }
 
-function RegisterForm({ registerUsername, registerEmail, registerPassword, setRegisterUsername, setRegisterEmail, setRegisterPassword, registerError, handleRegister, handleSendOTP }) {
+function RegisterForm({ registerUsername, registerPassword, setRegisterUsername, setRegisterPassword, registerError, handleRegister }) {
   const [loading, setLoading] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState('')
-  const [otpLoading, setOtpLoading] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await handleRegister(otp)
+      await handleRegister()
     } finally {
       setLoading(false)
-    }
-  }
-
-  const sendOTP = async () => {
-    if (!registerEmail) {
-      alert('Please enter your email first')
-      return
-    }
-    setOtpLoading(true)
-    try {
-      await handleSendOTP()
-      setOtpSent(true)
-    } finally {
-      setOtpLoading(false)
     }
   }
 
@@ -136,17 +119,7 @@ function RegisterForm({ registerUsername, registerEmail, registerPassword, setRe
           style={{width:'100%', padding:'14px 16px', border:'2px solid #e8ebf0', borderRadius:'12px'}}
         />
       </div>
-      <div style={{marginBottom:'24px'}}>
-        <label style={{display:'block', marginBottom:'10px', color:'#555', fontWeight:'600'}}><Icon name="email" size={16} /> Email Address</label>
-        <input
-          type="email"
-          value={registerEmail}
-          onChange={(e)=>setRegisterEmail(e.target.value)}
-          placeholder="your@email.com"
-          required
-          style={{width:'100%', padding:'14px 16px', border:'2px solid #e8ebf0', borderRadius:'12px'}}
-        />
-      </div>
+      {/* Email removed — registration now only needs username and password */}
       <div style={{marginBottom:'28px'}}>
         <label style={{display:'block', marginBottom:'10px', color:'#555', fontWeight:'600'}}><Icon name="lock" size={16} /> Password</label>
         <input
@@ -159,41 +132,15 @@ function RegisterForm({ registerUsername, registerEmail, registerPassword, setRe
           style={{width:'100%', padding:'14px 16px', border:'2px solid #e8ebf0', borderRadius:'12px'}}
         />
       </div>
-      {otpSent && (
-        <div style={{marginBottom:'24px'}}>
-          <label style={{display:'block', marginBottom:'10px', color:'#555', fontWeight:'600'}}><Icon name="spark" size={16} /> OTP Code</label>
-          <input
-            type="text"
-            value={otp}
-            onChange={(e)=>setOtp(e.target.value)}
-            placeholder="Enter 6-digit OTP"
-            required
-            maxLength="6"
-            style={{width:'100%', padding:'14px 16px', border:'2px solid #e8ebf0', borderRadius:'12px'}}
-          />
-        </div>
-      )}
       {registerError && <div style={{padding:'14px 16px', background:'#fee', borderRadius:'12px', color:'#c33', marginBottom:'24px'}}>{registerError}</div>}
-      {!otpSent ? (
-        <button
-          type="button"
-          onClick={sendOTP}
-          disabled={otpLoading}
-          className="btn-primary important-btn btn-icon"
-          style={{width:'100%', padding:'16px', border:'none', marginBottom:'12px'}}
-        >
-          {otpLoading ? <span className="spinner-small"></span> : <><Icon name="email" size={16} /> <span>Send OTP</span></>}
-        </button>
-      ) : (
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary important-btn btn-icon"
-          style={{width:'100%', padding:'16px', border:'none'}}
-        >
-          {loading ? <span className="spinner-small"></span> : <><Icon name="add" size={16} /> <span>Create Your Account</span></>}
-        </button>
-      )}
+      <button
+        type="submit"
+        disabled={loading}
+        className="btn-primary important-btn btn-icon"
+        style={{width:'100%', padding:'16px', border:'none'}}
+      >
+        {loading ? <span className="spinner-small"></span> : <><Icon name="add" size={16} /> <span>Create Your Account</span></>}
+      </button>
     </form>
   )
 }
@@ -210,13 +157,10 @@ export default function Login(props) {
     handleAuth,
     registerUsername,
     setRegisterUsername,
-    registerEmail,
-    setRegisterEmail,
     registerPassword,
     setRegisterPassword,
     handleRegister,
-    registerError,
-    handleSendOTP
+    registerError
   } = props
 
   return (
@@ -258,14 +202,11 @@ export default function Login(props) {
                 <p className="muted">Sign up to start managing your inventory</p>
                 <RegisterForm
                   registerUsername={registerUsername}
-                  registerEmail={registerEmail}
                   registerPassword={registerPassword}
                   setRegisterUsername={setRegisterUsername}
-                  setRegisterEmail={setRegisterEmail}
                   setRegisterPassword={setRegisterPassword}
                   registerError={registerError}
                   handleRegister={handleRegister}
-                  handleSendOTP={handleSendOTP}
                 />
 
                 <div className="info-box"><Icon name="check" size={16} /> Admin will review and approve your access</div>

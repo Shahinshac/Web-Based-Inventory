@@ -73,7 +73,6 @@ export default function App(){
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [registerUsername, setRegisterUsername] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
-  const [registerEmail, setRegisterEmail] = useState('')
   const [registerError, setRegisterError] = useState('')
   const [showLoginPage, setShowLoginPage] = useState(true) // Toggle between login/register page
   const [auditLogs, setAuditLogs] = useState([]) // Audit trail logs
@@ -873,104 +872,7 @@ export default function App(){
     alert('You have been logged out.')
   }
   
-  // User registration (Simple Direct)
-  // Step 1: Send OTP
-  async function handleSendOTP(e) {
-    e.preventDefault()
-    
-    if (!registerEmail) {
-      setRegisterError('Please enter your email address.')
-      return
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(registerEmail)) {
-      setRegisterError('Please enter a valid email address.')
-      return
-    }
-    
-    setOtpLoading(true) // Show loading state
-    console.log('Sending OTP to:', registerEmail);
-    
-    try {
-      const res = await fetch(API('/api/users/send-otp'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email: registerEmail })
-      })
-      
-      const data = await res.json()
-      console.log('Response:', data);
-      
-      if (res.ok) {
-        setOtpSent(true)
-        setOtpStep(2)
-        setRegisterError('')
-        setOtpLoading(false)
-        startOtpTimer(600) // 10 minutes
-        
-        // Show message based on whether email was sent
-        if (data.emailSent) {
-          showNotification('✅ OTP sent to your email! Check inbox and spam folder.', 'success')
-        } else {
-          // Email failed, show OTP in console for testing
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log('⚠️ EMAIL FAILED - Using OTP from console');
-          console.log('� YOUR OTP CODE:', data.otp);
-          console.log('📧 For:', registerEmail);
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          showNotification('⚠️ Email failed. OTP shown in console (F12)', 'error')
-        }
-      } else {
-        setOtpLoading(false)
-        setRegisterError(data.error || 'Failed to send OTP.')
-      }
-    } catch(e) {
-      console.error('Send OTP error:', e)
-      setOtpLoading(false)
-      setRegisterError('Failed to send OTP. Please try again.')
-    }
-  }
-
-  // Step 2: Verify OTP
-  async function handleVerifyOTP(e) {
-    e.preventDefault()
-    
-    if (!otpCode || otpCode.length !== 6) {
-      setRegisterError('Please enter a valid 6-digit OTP.')
-      return
-    }
-    
-    setOtpLoading(true)
-    
-    try {
-      const res = await fetch(API('/api/users/verify-otp'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ 
-          email: registerEmail, 
-          otp: otpCode 
-        })
-      })
-      
-      const data = await res.json()
-      
-      if (res.ok) {
-        setOtpVerified(true)
-        setOtpStep(3)
-        setRegisterError('')
-        setOtpLoading(false)
-        showNotification('✅ Email verified successfully!', 'success')
-      } else {
-        setOtpLoading(false)
-        setRegisterError(data.error || 'Invalid OTP.')
-      }
-    } catch(e) {
-      console.error('Verify OTP error:', e)
-      setOtpLoading(false)
-      setRegisterError('Failed to verify OTP. Please try again.')
-    }
-  }
+  // User registration: direct username + password (no email required)
 
   // Step 3: Complete Registration
   async function handleRegister(e) {
@@ -981,10 +883,7 @@ export default function App(){
       return
     }
 
-    if (!registerEmail) {
-      setRegisterError('Email is required.')
-      return
-    }
+    // No email required for registration
     
     if (registerPassword.length < 6) {
       setRegisterError('Password must be at least 6 characters long.')
@@ -997,8 +896,7 @@ export default function App(){
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ 
           username: registerUsername, 
-          password: registerPassword,
-          email: registerEmail
+          password: registerPassword
         })
       })
       
@@ -1009,7 +907,6 @@ export default function App(){
         setShowRegisterModal(false)
         setRegisterUsername('')
         setRegisterPassword('')
-        setRegisterEmail('')
         setRegisterError('')
         showNotification('✅ Registration successful! Please wait for admin approval.', 'success')
         setShowLoginPage(true)
@@ -1022,58 +919,7 @@ export default function App(){
     }
   }
 
-  // Resend OTP
-  async function handleResendOTP() {
-    if (!resendEnabled) return
-    
-    setResendEnabled(false)
-    
-    try {
-      const res = await fetch(API('/api/users/send-otp'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email: registerEmail })
-      })
-      
-      const data = await res.json()
-      
-      if (res.ok) {
-        setOtpCode('')
-        setRegisterError('')
-        startOtpTimer(600)
-        showNotification('✅ New OTP sent to your email!', 'success')
-        setTimeout(() => setResendEnabled(true), 60000) // Enable after 1 minute
-      } else {
-        setRegisterError(data.error || 'Failed to resend OTP.')
-        setResendEnabled(true)
-      }
-    } catch(e) {
-      console.error('Resend OTP error:', e)
-      setRegisterError('Failed to resend OTP.')
-      setResendEnabled(true)
-    }
-  }
-
-  // Timer countdown
-  function startOtpTimer(seconds) {
-    setOtpTimer(seconds)
-    const interval = setInterval(() => {
-      setOtpTimer(prev => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
-  // Format timer display
-  function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  // OTP/resend removed — registration uses username + password only
   
   // Approve user (Admin only)
   async function approveUser(userId) {
@@ -3592,12 +3438,11 @@ export default function App(){
         handleAuth={handleAuth}
         registerUsername={registerUsername}
         setRegisterUsername={setRegisterUsername}
-        registerEmail={registerEmail}
-        setRegisterEmail={setRegisterEmail}
+        
         registerPassword={registerPassword}
         setRegisterPassword={setRegisterPassword}
         handleRegister={handleRegister}
-        handleSendOTP={handleSendOTP}
+        
         registerError={registerError}
       />
     )

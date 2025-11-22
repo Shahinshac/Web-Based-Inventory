@@ -1410,20 +1410,15 @@ app.post('/api/users/register', async (req, res) => {
       return res.status(400).json({ error: 'Username already taken' });
     }
     
-    // Check if email already exists
-    const existingEmail = await db.collection('users').findOne({ email: email.toLowerCase() });
-    if (existingEmail) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
     
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create user (sanitize inputs)
+    // Create user (sanitize inputs). Email is optional now.
     const user = {
       username: sanitizeObject(username.toLowerCase()),
       password: hashedPassword,
-      email: sanitizeObject(email.toLowerCase()),
+      email: email ? sanitizeObject(email.toLowerCase()) : undefined,
       role: 'user',
       approved: false,
       createdAt: new Date(),
