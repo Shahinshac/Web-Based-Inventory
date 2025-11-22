@@ -4,6 +4,7 @@ export interface Invoice {
     date: string;
     customerId: number;
     status: 'paid' | 'unpaid' | 'pending';
+    items?: { name: string; qty: number; rate: number }[];
 }
 
 export interface Customer {
