@@ -16,6 +16,7 @@ const fs = require('fs').promises;
 const https = require('https');
 const crypto = require('crypto');
 const http = require('http');
+const PDFDocument = require('pdfkit');
 const {
   validateProduct,
   validateCustomer,
@@ -1048,6 +1049,78 @@ app.get('/public/invoice/:token', async (req, res) => {
   } catch (e) {
     logger.error('Public invoice serve error', e);
     res.status(500).send('Server error');
+  }
+});
+
+// Server-side PDF generator for an invoice (returns a generated PDF stream)
+app.get('/api/invoices/:id/server-pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDB();
+
+    // find invoice
+    let invoice = null;
+    try { invoice = await db.collection('bills').findOne({ _id: new ObjectId(id) }); } catch (e) {}
+    if (!invoice) invoice = await db.collection('bills').findOne({ billNumber: id });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+    // Build a PDF using PDFKit and stream it to the response
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.billNumber || invoice._id}.pdf`);
+
+    const doc = new PDFDocument({ size: 'A4', margin: 18 });
+    doc.pipe(res);
+
+    // Header
+    const companyName = process.env.COMPANY_NAME || 'My Inventory';
+    doc.fontSize(18).fillColor('#333').text(companyName, { align: 'left' });
+    doc.fontSize(10).fillColor('#666').text(`Invoice: ${invoice.billNumber || invoice._id}`, { align: 'right' });
+    doc.moveDown(0.5);
+
+    doc.fontSize(11).fillColor('#222').text(`Customer: ${invoice.customerName || 'Walk-in'}`);
+    doc.text(`Date: ${invoice.billDate ? new Date(invoice.billDate).toLocaleString() : ''}`);
+    doc.moveDown(0.5);
+
+    // Table-like items listing
+    doc.fontSize(10).fillColor('#000');
+    doc.text('S.No', { continued: true, width: 40 });
+    doc.text('Item', { continued: true, width: 260 });
+    doc.text('Qty', { continued: true, width: 40, align: 'right' });
+    doc.text('Rate', { continued: true, width: 60, align: 'right' });
+    doc.text('Amount', { width: 60, align: 'right' });
+    doc.moveDown(0.4);
+
+    const items = invoice.items || [];
+    let idx = 1;
+    for (const it of items) {
+      if (doc.y > doc.page.height - 100) doc.addPage();
+      doc.fontSize(9).fillColor('#111');
+      const name = it.productName || it.name || 'Item';
+      const qty = it.quantity || 0;
+      const rate = (it.unitPrice || it.price || 0).toFixed(2);
+      const amount = ((it.unitPrice || it.price || 0) * qty).toFixed(2);
+
+      doc.text(String(idx), { continued: true, width: 40 });
+      doc.text(name, { continued: true, width: 260 });
+      doc.text(String(qty), { continued: true, width: 40, align: 'right' });
+      doc.text(rate, { continued: true, width: 60, align: 'right' });
+      doc.text(amount, { width: 60, align: 'right' });
+      idx += 1;
+      doc.moveDown(0.2);
+    }
+
+    doc.moveDown(0.4);
+    doc.fontSize(10).fillColor('#222');
+    doc.text(`Subtotal: ₹${(invoice.subtotal || 0).toFixed(2)}`, { align: 'right' });
+    doc.text(`Discount: -₹${(invoice.discountAmount || 0).toFixed(2)}`, { align: 'right' });
+    doc.text(`GST: ₹${(invoice.gstAmount || invoice.taxAmount || 0).toFixed(2)}`, { align: 'right' });
+    doc.moveDown(0.4);
+    doc.fontSize(12).fillColor('#000').text(`Grand Total: ₹${(invoice.grandTotal || invoice.total || 0).toFixed(2)}`, { align: 'right' });
+
+    doc.end();
+  } catch (e) {
+    logger.error('Server PDF generation failed:', e);
+    res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 

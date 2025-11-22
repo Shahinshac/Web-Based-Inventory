@@ -1293,12 +1293,8 @@ export default function App(){
 
 
   function exportProductsToPDF() {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text('Product Inventory Report', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    addPDFHeader(doc, 'Product Inventory Report');
     
     const tableData = products.map((p, index) => [
       index + 1,
@@ -1320,12 +1316,8 @@ export default function App(){
   }
 
   function exportTransactionsToPDF() {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text('Transactions Report', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    addPDFHeader(doc, 'Transactions Report');
     
     const tableData = getFilteredInvoices().map(inv => [
       `#${inv.id}`,
@@ -1350,6 +1342,25 @@ export default function App(){
     
     doc.save('Transactions-Report.pdf');
     showNotification('✅ Transactions PDF downloaded!', 'success');
+  }
+
+  // Shared A4 header for PDFs
+  function addPDFHeader(doc, title) {
+    try {
+      const pageWidth = 210; // mm
+      doc.setFillColor(102, 126, 234);
+      doc.rect(0, 0, pageWidth, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.text(title, pageWidth / 2, 12, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 22, { align: 'center' });
+      doc.setTextColor(0);
+    } catch (e) {
+      // ignore header problems
+    }
   }
 
   // Backup and Restore Functions
@@ -1488,13 +1499,8 @@ export default function App(){
   // Download Reports Functions - All in PDF Format
   function downloadSalesReport() {
     if (!invoices || invoices.length === 0) { showNotification('No invoices to export', 'warning'); return; }
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Sales Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    addPDFHeader(doc, 'Sales Report');
     doc.text(`Total Transactions: ${invoices.length}`, 105, 35, { align: 'center' });
     
     // Table data
@@ -1533,13 +1539,8 @@ export default function App(){
 
   function downloadInventoryReport() {
     if (!products || products.length === 0) { showNotification('No products to export', 'warning'); return; }
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Inventory Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    addPDFHeader(doc, 'Inventory Report');
     doc.text(`Total Products: ${products.length}`, 105, 35, { align: 'center' });
     
     // Table data
@@ -1579,13 +1580,8 @@ export default function App(){
 
   function downloadCustomerReport() {
     if (!customers || customers.length === 0) { showNotification('No customers to export', 'warning'); return; }
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Customer Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    addPDFHeader(doc, 'Customer Report');
     doc.text(`Total Customers: ${customers.length}`, 105, 35, { align: 'center' });
     
     // Table data
@@ -1608,6 +1604,77 @@ export default function App(){
     
     doc.save(`Customer-Report-${new Date().toISOString().split('T')[0]}.pdf`);
     showNotification('✅ Customer Report PDF downloaded!', 'success');
+  }
+
+  // Generic CSV helper
+  function downloadCSV(dataRows, filename) {
+    try {
+      // Escape and format CSV (handle commas and quotes)
+      const csvRows = dataRows.map(row => row.map(cell => {
+        if (cell == null) return '';
+        const text = String(cell);
+        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+          return '"' + text.replace(/"/g, '""') + '"';
+        }
+        return text;
+      }).join(','));
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showNotification(`✅ ${filename} CSV downloaded`, 'success');
+    } catch (e) {
+      console.error('CSV export error', e);
+      showNotification('❌ Failed to export CSV', 'error');
+    }
+  }
+
+  function downloadSalesCSV() {
+    if (!invoices || invoices.length === 0) { showNotification('No invoices to export', 'warning'); return; }
+    const headers = ['Invoice #','Date','Customer','Items','Total','Payment Mode','Profit','Tax'];
+    const rows = invoices.map(inv => [
+      inv.billNumber || inv.id || '',
+      new Date(inv.created_at || inv.date || Date.now()).toLocaleString(),
+      inv.customer_name || inv.customerName || 'Walk-in',
+      inv.items?.length || 0,
+      (inv.total || inv.grandTotal || 0).toFixed(2),
+      inv.paymentMode || 'Cash',
+      (inv.totalProfit || 0).toFixed(2),
+      (inv.taxAmount || 0).toFixed(2)
+    ]);
+    downloadCSV([headers, ...rows], 'Sales_Report');
+  }
+
+  function downloadInventoryCSV() {
+    if (!products || products.length === 0) { showNotification('No products to export', 'warning'); return; }
+    const headers = ['#','Name','Stock','Price','Cost','Profit/Unit','HSN','Status'];
+    const rows = products.map((prod, idx) => [
+      idx + 1,
+      prod.name,
+      prod.quantity || 0,
+      (prod.price || 0).toFixed(2),
+      (prod.costPrice || 0).toFixed(2),
+      ((prod.price || 0) - (prod.costPrice || 0)).toFixed(2),
+      prod.hsnCode || '',
+      prod.quantity === 0 ? 'Out of Stock' : prod.quantity < 10 ? 'Low Stock' : 'In Stock'
+    ]);
+    downloadCSV([headers, ...rows], 'Inventory_Report');
+  }
+
+  function downloadCustomerCSV() {
+    if (!customers || customers.length === 0) { showNotification('No customers to export', 'warning'); return; }
+    const headers = ['#','Name','Phone','Address','GSTIN'];
+    const rows = customers.map((c, idx) => [
+      idx + 1, c.name, c.phone || '', c.address || '', c.gstin || ''
+    ]);
+    downloadCSV([headers, ...rows], 'Customers_Report');
   }
 
   function downloadProfitReport() {
@@ -2686,27 +2753,65 @@ export default function App(){
     showNotification('Opening WhatsApp with invoice message...', 'info');
   }
 
-  // Generate a high-quality A4 PDF for an invoice (fits single A4 page where possible)
-  function downloadInvoicePDF(invoice) {
+  // Generate a high-quality A4 PDF for an invoice (supports multi-page for long invoices)
+  async function downloadInvoicePDF(invoice) {
     try {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 12;
       const pageWidth = 210; // mm
+      const pageHeight = 297; // A4 height mm
       const usableW = pageWidth - margin * 2;
 
       // Header background
+      // Attempt to draw a header background + logo
       doc.setFillColor(102, 126, 234); // #667eea
       doc.rect(0, 0, pageWidth, 36, 'F');
 
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(20);
-      doc.setFont(undefined, 'bold');
-      doc.text(companyInfo.logo + ' ' + companyInfo.name, margin, 14);
+      // Try embedding the app icon or fallback to emoji/company text
+      try {
+        // prefer public icon if present (vite/serve will expose /icon-512.png)
+        const logoData = await (async function getLogoData(){
+          const url = '/icon-512.png';
+          try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('no logo');
+            const blob = await resp.blob();
+            return await new Promise((res) => {
+              const reader = new FileReader();
+              reader.onload = () => res(reader.result);
+              reader.readAsDataURL(blob);
+            });
+          } catch(e) { return null; }
+        })();
 
-      doc.setFontSize(9);
-      doc.setTextColor(255,255,255);
-      doc.text(companyInfo.address, margin, 20);
-      doc.text(`${companyInfo.phone} • ${companyInfo.email}`, margin, 26);
+        if (logoData) {
+          // Add image at left of header
+          const imgW = 18; // mm
+          const imgH = 18; // mm
+          doc.addImage(logoData, 'PNG', margin, 6, imgW, imgH);
+          doc.setTextColor(255,255,255);
+          doc.setFontSize(18);
+          doc.setFont(undefined, 'bold');
+          doc.text(companyInfo.name, margin + 22, 18);
+        } else {
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(20);
+          doc.setFont(undefined, 'bold');
+          doc.text(companyInfo.logo + ' ' + companyInfo.name, margin, 18);
+        }
+
+        // company small details
+        doc.setFontSize(8);
+        doc.setTextColor(255,255,255);
+        const details = `${companyInfo.address || ''} ${companyInfo.phone ? '• ' + companyInfo.phone : ''} ${companyInfo.email ? '• ' + companyInfo.email : ''}`.trim();
+        doc.text(details, margin, 28);
+      } catch (e) {
+        // fallback - simply write the company name
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text(companyInfo.logo + ' ' + companyInfo.name, margin, 14);
+      }
 
       // Invoice meta box
       doc.setTextColor(20, 20, 20);
@@ -2743,25 +2848,48 @@ export default function App(){
         amount: fmt1((it.unitPrice || it.price || 0) * (it.quantity || 0))
       }));
 
+      // Use autoTable with page break support and denser layout (smaller font, tighter cells)
       doc.autoTable({
         startY: topY + 26,
         margin: { left: margin, right: margin },
         tableWidth: usableW,
         head: [columns.map(c => c.header)],
         body: items.map(r => [r.sno, r.item, r.qty, r.rate, r.amount]),
-        styles: { fontSize: 9, cellPadding: 2 },
+        styles: { fontSize: 8, cellPadding: 1.5 },
         headStyles: { fillColor: [102,126,234], textColor: 255 },
-        theme: 'striped'
+        theme: 'striped',
+        // show header on each page and support custom page header/footer
+        showHead: 'everyPage',
+        didDrawPage: function (data) {
+          // draw small page header for subsequent pages
+          const page = doc.getNumberOfPages();
+          if (page > 1) {
+            doc.setFillColor(240, 240, 240);
+            doc.rect(0, 0, pageWidth, 16, 'F');
+            doc.setFontSize(10);
+            doc.setTextColor(40,40,40);
+            doc.text(companyInfo.name || 'Company', margin, 11);
+          }
+          // page footer (page x of y) will be added later after generation
+        }
       });
 
-      const finalY = doc.lastAutoTable.finalY + 6;
+      let finalY = doc.lastAutoTable.finalY + 6;
 
       // Calculations box on the right (fits under items if space)
       const calcX = pageWidth - margin - 80;
       const calcW = 80;
 
       doc.setFillColor(245, 245, 245);
-      doc.roundedRect(calcX, finalY, calcW, 36, 3, 3, 'F');
+      const calcBoxHeight = 36;
+
+      // Move calc box to a new page if it would overflow the page
+      if (finalY + calcBoxHeight > (pageHeight - margin - 12)) {
+        doc.addPage();
+        finalY = margin + 6;
+      }
+
+      doc.roundedRect(calcX, finalY, calcW, calcBoxHeight, 3, 3, 'F');
 
       const subtotal = invoice.subtotal || 0;
       const discount = invoice.discountAmount || 0;
@@ -2783,11 +2911,15 @@ export default function App(){
       doc.text('GRAND TOTAL', calcX + 6, finalY + 30);
       doc.text(`₹${fmt1(grand)}`, calcX + calcW - 6, finalY + 30, { align: 'right' });
 
-      // Footer / thank you
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(110,110,110);
-      doc.text('Thank you for your business!', margin, 287);
+      // Footer / thank you + page numbers
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(110,110,110);
+        doc.text('Thank you for your business!', margin, pageHeight - margin - 6);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - margin - 6, { align: 'right' });
+      }
 
       // Save as A4 PDF
       const fileName = `Invoice-${invoiceId || Date.now()}.pdf`;
@@ -4814,14 +4946,14 @@ export default function App(){
               <h3>📥 Download Reports</h3>
               <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV format</p>
               <div className="download-buttons-grid">
-                <button onClick={downloadSalesReport} className="download-btn sales">
+                <button onClick={downloadSalesCSV} className="download-btn sales">
                   <span className="btn-icon">📊</span>
                   <div>
                     <strong>Sales Report (CSV)</strong>
                     <small>All invoices with profit details</small>
                   </div>
                 </button>
-                <button onClick={downloadInventoryReport} className="download-btn inventory">
+                <button onClick={downloadInventoryCSV} className="download-btn inventory">
                   <span className="btn-icon">📦</span>
                   <div>
                     <strong>Inventory Report (CSV)</strong>
@@ -4835,7 +4967,7 @@ export default function App(){
                     <small>Complete product list</small>
                   </div>
                 </button>
-                <button onClick={downloadCustomerReport} className="download-btn customers">
+                <button onClick={downloadCustomerCSV} className="download-btn customers">
                   <span className="btn-icon">�</span>
                   <div>
                     <strong>Customer Report</strong>
@@ -5617,6 +5749,18 @@ export default function App(){
                 style={{background:'#2b6cb0', marginLeft:'8px'}}
               >
                 ⬇️ Download PDF
+              </button>
+              <button
+                onClick={() => {
+                  if (!lastBill) return;
+                  const id = lastBill.id || lastBill._id || lastBill.billNumber || lastBill.id;
+                  const url = API(`/api/invoices/${encodeURIComponent(id)}/server-pdf`);
+                  window.open(url, '_blank');
+                }}
+                className="btn-primary"
+                style={{background:'#1f7a8c', marginLeft:'8px'}}
+              >
+                ⬇️ Download (Server PDF)
               </button>
               <button
                 onClick={() => {
