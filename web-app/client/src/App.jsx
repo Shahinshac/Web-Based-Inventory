@@ -21,6 +21,15 @@ export default function App(){
   const [offlineTransactions, setOfflineTransactions] = useState([])
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastDataRefresh, setLastDataRefresh] = useState(null)
+  // Live India time & date display (Asia/Kolkata, 12-hour format)
+  const [indiaTime, setIndiaTime] = useState(() => {
+    const now = new Date()
+    return new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, timeZone: 'Asia/Kolkata' }).format(now)
+  })
+  const [indiaDate, setIndiaDate] = useState(() => {
+    const now = new Date()
+    return new Intl.DateTimeFormat('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' }).format(now)
+  })
   
   const [tab, setTab] = useState('dashboard')
   const [products, setProducts] = useState([])
@@ -166,6 +175,7 @@ export default function App(){
 
   // Global error handler to prevent app crashes
   useEffect(() => {
+
     const handleError = (event) => {
       console.error('Global error caught:', event.error);
       showNotification('❌ An unexpected error occurred. Please refresh the page if problems persist.', 'error');
@@ -186,6 +196,18 @@ export default function App(){
       window.removeEventListener('unhandledrejection', handleRejection);
     };
   }, []);
+
+  // separate effect just for India clock updates
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      setIndiaTime(new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, timeZone: 'Asia/Kolkata' }).format(now))
+      setIndiaDate(new Intl.DateTimeFormat('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' }).format(now))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // Check authentication on mount (permanent session until logout)
   useEffect(() => {
@@ -3952,6 +3974,10 @@ export default function App(){
           }}><Icon name="spark" size={32} /> 26:07</span>
           <span style={{marginLeft: '8px'}}>Electronics</span>
         </h1>
+        <div className="header-clock" aria-hidden={!indiaTime} style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'2px',position:'absolute',right:20,top:18}}>
+          <div style={{fontSize: '14px', fontWeight: 700}}>{indiaTime}</div>
+          <div style={{fontSize: '12px', opacity: 0.9}}>{indiaDate}</div>
+        </div>
         <div className="mobile-auth">
           <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
           <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}><Icon name="lock" size={16} /></button>

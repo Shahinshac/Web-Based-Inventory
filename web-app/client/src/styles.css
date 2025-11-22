@@ -87,6 +87,20 @@ body {
   animation: slideInRight 0.6s ease-out;
 }
 
+/* Header clock (India time/date) */
+.app header .header-clock {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  text-align: right;
+  color: rgba(255,255,255,0.95);
+  line-height: 1;
+}
+
+@media (max-width: 800px) {
+  .app header .header-clock { display: none; }
+}
+
 @keyframes slideInRight {
   from { transform: translateX(50px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
