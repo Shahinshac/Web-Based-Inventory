@@ -3823,10 +3823,6 @@ export default function App(){
           <div style={{fontSize: '14px', fontWeight: 700}}>{indiaTime}</div>
           <div style={{fontSize: '12px', opacity: 0.9}}>{indiaDate}</div>
         </div>
-        <div className="mobile-auth">
-          <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-          <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}><Icon name="lock" size={16} /></button>
-        </div>
         <nav>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={`${tab==='dashboard' ? 'active' : ''} btn-icon`}><Icon name="dashboard"/> <span className="label">Dashboard</span></button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={`${tab==='pos' ? 'active' : ''} btn-icon`}><Icon name="pos"/> <span className="label">Transactions</span></button>
