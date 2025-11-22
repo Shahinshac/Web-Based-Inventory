@@ -828,6 +828,51 @@ ul:not(.products):not(.cart) li:hover {
   transition: all 0.3s ease;
 }
 
+/* ---- Login / Register animated UI ---- */
+.login-root { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.login-center { width:100%; max-width:680px; }
+.login-card { background: #fff; border-radius:20px; box-shadow: 0 30px 80px rgba(0,0,0,0.35); overflow:hidden; display:flex; flex-direction:column; }
+.login-brand { display:flex; gap:18px; padding:36px 40px; align-items:center; background:linear-gradient(135deg,#667eea 0%, #764ba2 100%); color:white }
+.brand-icon { font-size:56px; }
+.brand-text h2 { margin:0; font-size:24px; font-weight:800; }
+.brand-text p { margin:0; font-size:13px; opacity:0.9 }
+.tab-bar { display:flex; gap:8px; padding:10px; background:#f8f9fa; align-items:center }
+.tab-btn { flex:1; padding:12px 18px; border-radius:12px; background:transparent; border:none; cursor:pointer; color:#7b7b7b; font-weight:700; transition: all 250ms cubic-bezier(.2,.9,.2,1); position:relative; }
+.tab-btn.active { background:white; color:#2b6cb0; box-shadow: 0 8px 20px rgba(43,108,176,0.12); transform:translateY(-2px); }
+.animated-panel { padding:30px 36px; animation: cardIn 420ms cubic-bezier(.2,.9,.2,1); }
+@keyframes cardIn { from { transform: translateY(8px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+
+.login-form { display:flex; flex-direction:column; gap:14px; margin-top:6px }
+.login-form .form-group label { display:block; margin-bottom:6px; color:#444; font-weight:600 }
+.control { width:100%; padding:12px 14px; border-radius:10px; border:2px solid #eef0f5; font-size:14px; transition: all .18s ease; }
+.control:focus { outline:none; border-color:#9FB4EE; box-shadow:0 8px 30px rgba(102,126,234,0.08); transform:translateY(-1px) }
+.password-row { display:flex; align-items:center; gap:8px }
+.eye-toggle { background:transparent; border:none; cursor:pointer; font-size:18px }
+.form-footer { display:flex; justify-content:space-between; align-items:center; margin-top:6px }
+.remember { display:flex; align-items:center; gap:8px; color:#666; font-weight:600 }
+.link { background:transparent; border:none; color:#667eea; cursor:pointer; font-weight:700 }
+
+.fancy-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border-radius:12px; border:none; cursor:pointer; font-weight:700; transition: all 220ms cubic-bezier(.2,.9,.2,1); position:relative; overflow:hidden }
+.fancy-btn.primary { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; box-shadow: 0 10px 30px rgba(102,126,234,0.18) }
+.fancy-btn.subtle { background:linear-gradient(135deg,#f4f7ff 0%,#eef6ff 100%); color:#2d6fb0 }
+.fancy-btn:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.12) }
+.fancy-btn.loading { pointer-events:none; opacity:0.85 }
+.fancy-btn .spinner { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.45); border-top-color: rgba(255,255,255,0.95); animation: spin 700ms linear infinite }
+.fancy-btn.subtle .spinner { border-color: rgba(80,100,140,0.18); border-top-color: rgba(80,100,140,0.8) }
+
+.alert.error { padding:12px 14px; background:#fff0f0; border-radius:8px; color:#c0392b; border: 1px solid rgba(192,57,43,0.08); }
+.shake { animation: shake 360ms linear }
+@keyframes shake { 0%{transform:translateX(0)} 25%{transform:translateX(-6px)} 50%{transform:translateX(6px)} 75%{transform:translateX(-4px)} 100%{transform:translateX(0)} }
+
+.info-box { margin-top:18px; background:linear-gradient(135deg,#f0f4ff 0%, #e9f0ff 100%); color:#2361b6; padding:12px 16px; border-radius:10px; text-align:center; font-weight:600 }
+
+/* Accessible focused button outline */
+.tab-btn:focus, .fancy-btn:focus { outline: none; box-shadow: 0 0 0 4px rgba(102,126,234,0.12) }
+
+/* subtle sweep highlight on hover for fancy buttons */
+.fancy-btn::after { content: ''; position: absolute; left: -60%; top: 0; height: 100%; width: 60%; transform: skewX(-20deg) translateX(-100%); background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.25), rgba(255,255,255,0.12)); transition: transform 420ms cubic-bezier(.2,.9,.2,1); pointer-events:none }
+.fancy-btn:hover::after { transform: skewX(-20deg) translateX(220%); }
+
 .form-group input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
   background: #764ba2;

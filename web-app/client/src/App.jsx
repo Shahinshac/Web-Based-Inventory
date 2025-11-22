@@ -3573,6 +3573,7 @@ export default function App(){
         registerPassword={registerPassword}
         setRegisterPassword={setRegisterPassword}
         handleRegister={handleRegister}
+        handleSendOTP={handleSendOTP}
         registerError={registerError}
       />
     )
