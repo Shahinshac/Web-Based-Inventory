@@ -108,6 +108,75 @@ export default function Icon({ name, size = 18, className = '', stroke = 'curren
           <path d="M17 9.5a0.5 0.5 0 1 1-1 0 0.5 0.5 0 0 1 1 0z" />
         </svg>
       )
+      case 'location':
+        return (
+          <svg {...common} className={className}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" />
+            <circle cx="12" cy="10" r="2" />
+          </svg>
+        )
+      case 'phone':
+        return (
+          <svg {...common} className={className}>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.86 19.86 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.86 19.86 0 0 1-3.07-8.63A2 2 0 0 1 4.09 2h3a2 2 0 0 1 2 1.72c.12 1.21.45 2.4.97 3.5a2 2 0 0 1-.45 2.11L8.91 11.09a16 16 0 0 0 6 6l1.76-1.76a2 2 0 0 1 2.11-.45c1.11.52 2.29.86 3.5.97A2 2 0 0 1 22 16.92z" />
+          </svg>
+        )
+      case 'email':
+        return (
+          <svg {...common} className={className}>
+            <path d="M3 8l9 6 9-6" />
+            <path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8" />
+          </svg>
+        )
+      case 'close':
+        return (
+          <svg {...common} className={className}>
+            <path d="M18 6L6 18" />
+            <path d="M6 6l12 12" />
+          </svg>
+        )
+      case 'lock':
+        return (
+          <svg {...common} className={className}>
+            <rect x="3" y="11" width="18" height="10" rx="2" />
+            <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+          </svg>
+        )
+      case 'trash':
+        return (
+          <svg {...common} className={className}>
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+          </svg>
+        )
+      case 'check':
+        return (
+          <svg {...common} className={className}>
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        )
+      case 'cash':
+        return (
+          <svg {...common} className={className}>
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        )
+      case 'card':
+        return (
+          <svg {...common} className={className}>
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <path d="M2 10h20" />
+          </svg>
+        )
+      case 'spark':
+        return (
+          <svg {...common} className={className}>
+            <path d="M12 2l1.8 4.6L19 8l-4.6 1.8L12 14 10.6 9.8 6 8l4.6-1.4L12 2z" />
+          </svg>
+        )
     default:
       return null
   }

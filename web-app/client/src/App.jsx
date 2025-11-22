@@ -431,14 +431,14 @@ export default function App(){
       
       if (!res.ok || !data.exists) {
         // User account was deleted by admin
-        alert('⚠️ Your account has been removed by the administrator. You will be logged out.')
+        alert('Your account has been removed by the administrator. You will be logged out.')
         handleLogout()
         return false
       }
       
       if (!data.approved) {
         // User account was un-approved by admin
-        alert('⚠️ Your account approval has been revoked by the administrator. You will be logged out.')
+        alert('Your account approval has been revoked by the administrator. You will be logged out.')
         handleLogout()
         return false
       }
@@ -479,7 +479,7 @@ export default function App(){
           const cachedProducts = await window.offlineStorage.getCachedProducts()
           if (cachedProducts.length > 0) {
             setProducts(cachedProducts)
-            console.log('📦 Loaded products from cache')
+            console.log('Loaded products from cache')
           }
         }
       }
@@ -490,7 +490,7 @@ export default function App(){
         const cachedProducts = await window.offlineStorage.getCachedProducts()
         if (cachedProducts.length > 0) {
           setProducts(cachedProducts)
-          console.log('📦 Loaded products from cache (fallback)')
+          console.log('Loaded products from cache (fallback)')
         }
       }
     }
@@ -513,7 +513,7 @@ export default function App(){
           const cachedCustomers = await window.offlineStorage.getCachedCustomers()
           if (cachedCustomers.length > 0) {
             setCustomers(cachedCustomers)
-            console.log('📦 Loaded customers from cache')
+            console.log('Loaded customers from cache')
           }
         }
       }
@@ -524,7 +524,7 @@ export default function App(){
         const cachedCustomers = await window.offlineStorage.getCachedCustomers()
         if (cachedCustomers.length > 0) {
           setCustomers(cachedCustomers)
-          console.log('📦 Loaded customers from cache (fallback)')
+          console.log('Loaded customers from cache (fallback)')
         }
       }
     }
@@ -547,7 +547,7 @@ export default function App(){
           const cachedBills = await window.offlineStorage.getCachedBills()
           if (cachedBills.length > 0) {
             setInvoices(cachedBills)
-            console.log('📦 Loaded invoices from cache')
+            console.log('Loaded invoices from cache')
           }
         }
       }
@@ -558,7 +558,7 @@ export default function App(){
         const cachedBills = await window.offlineStorage.getCachedBills()
         if (cachedBills.length > 0) {
           setInvoices(cachedBills)
-          console.log('📦 Loaded invoices from cache (fallback)')
+          console.log('Loaded invoices from cache (fallback)')
         }
       }
     }
@@ -581,7 +581,7 @@ export default function App(){
           const cachedStats = await window.offlineStorage.getSetting('stats')
           if (cachedStats) {
             setStats(cachedStats)
-            console.log('📦 Loaded stats from cache')
+            console.log('Loaded stats from cache')
           } else {
             // Fallback stats when no cache available
             setStats({
@@ -590,7 +590,7 @@ export default function App(){
               totalSales: invoices.length,
               totalRevenue: invoices.reduce((sum, inv) => sum + (inv.total || 0), 0)
             })
-            console.log('📊 Generated fallback stats from cached data')
+            console.log('Generated fallback stats from cached data')
           }
         }
       }
@@ -601,7 +601,7 @@ export default function App(){
         const cachedStats = await window.offlineStorage.getSetting('stats')
         if (cachedStats) {
           setStats(cachedStats)
-          console.log('📦 Loaded stats from cache (fallback)')
+          console.log('Loaded stats from cache (fallback)')
         }
       }
     }
@@ -796,7 +796,7 @@ export default function App(){
         
         if (res.ok && data.user) {
           if (!data.user.approved) {
-            setAuthError('⏳ Your account is pending admin approval.')
+            setAuthError('Your account is pending admin approval.')
             setAuthUsername('')
             setAuthPassword('')
             return
@@ -848,7 +848,7 @@ export default function App(){
     localStorage.removeItem('currentUser')
     localStorage.removeItem('isAdmin')
     localStorage.removeItem('userRole')
-    alert('🔒 You have been logged out.')
+    alert('You have been logged out.')
   }
   
   // User registration (Simple Direct)
@@ -2610,19 +2610,19 @@ export default function App(){
                   <div class="payment-split">
                     ${splitDetails.cashAmount > 0 ? `
                       <div class="payment-item">
-                        <div class="payment-method">💵 Cash</div>
+                        <div class="payment-method"><Icon name="cash" size={14} /> Cash</div>
                         <div class="payment-amount">₹${fmt1(splitDetails.cashAmount)}</div>
                       </div>
                     ` : ''}
                     ${splitDetails.upiAmount > 0 ? `
                       <div class="payment-item">
-                        <div class="payment-method">📱 UPI</div>
+                        <div class="payment-method"><Icon name="spark" size={14} /> UPI</div>
                         <div class="payment-amount">₹${fmt1(splitDetails.upiAmount)}</div>
                       </div>
                     ` : ''}
                     ${splitDetails.cardAmount > 0 ? `
                       <div class="payment-item">
-                        <div class="payment-method">💳 Card</div>
+                        <div class="payment-method"><Icon name="card" size={14} /> Card</div>
                         <div class="payment-amount">₹${fmt1(splitDetails.cardAmount)}</div>
                       </div>
                     ` : ''}
@@ -2632,7 +2632,7 @@ export default function App(){
                 <div class="payment-details">
                   <h4>💰 Payment Method</h4>
                   <div style="padding: 10px; background: white; border-radius: 4px; text-align: center;">
-                    <div class="payment-method" style="font-size: 10pt; margin-bottom: 5px;">${billPaymentMode === 'cash' ? '💵 Cash' : billPaymentMode === 'upi' ? '📱 UPI' : billPaymentMode === 'card' ? '💳 Card' : billPaymentMode.toUpperCase()}</div>
+                    <div class="payment-method" style="font-size: 10pt; margin-bottom: 5px;">${billPaymentMode === 'cash' ? '<Icon name="cash" size={12} /> Cash' : billPaymentMode === 'upi' ? '<Icon name="spark" size={12} /> UPI' : billPaymentMode === 'card' ? '<Icon name="card" size={12} /> Card' : billPaymentMode.toUpperCase()}</div>
                     <div class="payment-amount">₹${fmt1(grandTotal)}</div>
                   </div>
                 </div>
@@ -3468,7 +3468,7 @@ export default function App(){
             fontSize: '48px',
             marginBottom: '20px',
             animation: 'pulse 2s ease-in-out infinite'
-          }}>📊</div>
+          }}><Icon name="analytics" size={48} /></div>
 
           {/* Title */}
           <h1 style={{
@@ -3599,7 +3599,7 @@ export default function App(){
           animation: 'slideInRight 0.3s ease-out'
         }}>
           <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-            📱 Install App
+            <Icon name="phone" /> Install App
           </div>
           <div style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
             Install this app for offline access and better performance
@@ -3657,7 +3657,7 @@ export default function App(){
           maxWidth: '220px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📴 Offline Mode
+            <Icon name="close" /> Offline Mode
             <button
               onClick={async () => {
                 console.log('🔄 Manual refresh requested...')
@@ -3720,24 +3720,24 @@ export default function App(){
 
       {/* Offline Transactions Counter */}
       {offlineTransactions.length > 0 && isAuthenticated && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: isOnline ? '120px' : '160px',
-          background: '#ffa726',
-          color: 'white',
-          padding: '6px 12px',
-          borderRadius: '15px',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(255,167,38,0.3)',
-          cursor: 'pointer'
-        }}
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            left: isOnline ? '120px' : '160px',
+            background: '#ffa726',
+            color: 'white',
+            padding: '6px 12px',
+            borderRadius: '15px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            zIndex: 9999,
+            boxShadow: '0 4px 12px rgba(255,167,38,0.3)',
+            cursor: 'pointer'
+          }}
         onClick={() => showNotification(`${offlineTransactions.length} transactions pending sync`, 'info')}
         title="Click to view pending transactions"
         >
-          📦 {offlineTransactions.length}
+          <Icon name="products" /> {offlineTransactions.length}
         </div>
       )}
 
@@ -3796,7 +3796,7 @@ export default function App(){
           }}
           title="Install App"
         >
-          <span style={{ fontSize: '18px' }}>📱</span>
+          <Icon name="spark" size={18} />
           Install App
         </button>
       )}
@@ -3822,21 +3822,21 @@ export default function App(){
           onClick={() => setShowQuickActions(!showQuickActions)}
           title="Quick Actions"
         >
-          ⚡
+          <Icon name="spark" size={20} />
         </button>
         {showQuickActions && (
           <div className="quick-actions-menu fade-in">
             <button onClick={() => { setTab('pos'); setShowQuickActions(false); }}>
-              🛒 New Sale
+              <Icon name="pos" size={16} /> New Sale
             </button>
             <button onClick={() => { setTab('products'); setShowQuickActions(false); }}>
-              ➕ Add Product
+              <Icon name="add" size={16} /> Add Product
             </button>
             <button onClick={() => { setShowStockAlert(true); setShowQuickActions(false); }}>
-              📊 Stock Alert
+              <Icon name="analytics" size={16} /> Stock Alert
             </button>
             <button onClick={() => { setTab('reports'); setShowQuickActions(false); }}>
-              📈 Reports
+              <Icon name="reports" size={16} /> Reports
             </button>
             <button onClick={() => { 
               const lowStock = products.filter(p => p.quantity < 10);
@@ -3848,7 +3848,7 @@ export default function App(){
               }
               setShowQuickActions(false);
             }}>
-              🔔 Low Stock
+              <Icon name="analytics" size={16} /> Low Stock
             </button>
           </div>
         )}
@@ -3858,9 +3858,9 @@ export default function App(){
       {showStockAlert && (
         <div className="modal-overlay" onClick={() => setShowStockAlert(false)}>
           <div className="modal slide-in" onClick={e => e.stopPropagation()}>
-            <h2>📊 Stock Alerts</h2>
+            <h2><Icon name="analytics" size={20} /> Stock Alerts</h2>
             <div className="stock-alerts">
-              <h3 style={{color: '#e74c3c'}}>⚠️ Out of Stock ({products.filter(p => p.quantity === 0).length})</h3>
+              <h3 style={{color: '#e74c3c'}}><Icon name="analytics" size={16} /> Out of Stock ({products.filter(p => p.quantity === 0).length})</h3>
               <div className="alert-list">
                 {products.filter(p => p.quantity === 0).map(p => (
                   <div key={p._id} className="alert-item out-of-stock">
@@ -3870,7 +3870,7 @@ export default function App(){
                 ))}
               </div>
               
-              <h3 style={{color: '#f39c12', marginTop: '20px'}}>⚠️ Low Stock ({products.filter(p => p.quantity > 0 && p.quantity < 10).length})</h3>
+              <h3 style={{color: '#f39c12', marginTop: '20px'}}><Icon name="analytics" size={16} /> Low Stock ({products.filter(p => p.quantity > 0 && p.quantity < 10).length})</h3>
               <div className="alert-list">
                 {products.filter(p => p.quantity > 0 && p.quantity < 10).map(p => (
                   <div key={p._id} className="alert-item low-stock">
@@ -3889,7 +3889,7 @@ export default function App(){
       {showProductDetails && selectedProduct && (
         <div className="modal-overlay" onClick={() => setShowProductDetails(false)}>
           <div className="modal product-details-modal slide-in" onClick={e => e.stopPropagation()}>
-            <h2>📦 {selectedProduct.name}</h2>
+            <h2><Icon name="products" size={20} /> {selectedProduct.name}</h2>
             <div className="product-details-grid">
               <div className="detail-row">
                 <span className="detail-label">Barcode:</span>
@@ -3924,7 +3924,7 @@ export default function App(){
               <div className="detail-row">
                 <span className="detail-label">Status:</span>
                 <span className={`detail-value ${selectedProduct.quantity === 0 ? 'out-of-stock-text' : selectedProduct.quantity < 10 ? 'low-stock-text' : 'in-stock-text'}`}>
-                  {selectedProduct.quantity === 0 ? '🔴 Out of Stock' : selectedProduct.quantity < 10 ? '🟡 Low Stock' : '🟢 In Stock'}
+                  {selectedProduct.quantity === 0 ? 'Out of Stock' : selectedProduct.quantity < 10 ? 'Low Stock' : 'In Stock'}
                 </span>
               </div>
             </div>
@@ -3949,12 +3949,12 @@ export default function App(){
             WebkitTextFillColor: 'transparent',
             fontWeight: 'bold',
             fontSize: '32px'
-          }}>⚡ 26:07</span>
+          }}><Icon name="spark" size={32} /> 26:07</span>
           <span style={{marginLeft: '8px'}}>Electronics</span>
         </h1>
         <div className="mobile-auth">
           <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-          <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}>🚪</button>
+          <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}><Icon name="lock" size={16} /></button>
         </div>
         <nav>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={`${tab==='dashboard' ? 'active' : ''} btn-icon`}><Icon name="dashboard"/> <span className="label">Dashboard</span></button>
@@ -3969,7 +3969,7 @@ export default function App(){
           {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={`${tab==='audit'?'active':''} btn-icon`}><Icon name="audit"/> <span className="label">Audit Logs</span></button>}
           <span style={{display:'inline-flex', alignItems:'center', gap:'10px', marginLeft:'20px', whiteSpace:'nowrap'}}>
             <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
-            <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78'}}>🚪 Logout</button>
+            <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78'}}><Icon name="lock" size={16} /> Logout</button>
           </span>
         </nav>
       </header>
@@ -3981,14 +3981,14 @@ export default function App(){
             </div>
             <div className="stats-grid">
               <div className="stat-card scale-in" style={{animationDelay: '0s'}}>
-                <div className="stat-icon">💰</div>
+                <div className="stat-icon"><Icon name="cash" size={24} /></div>
                 <div className="stat-info">
                   <h3>₹{((stats.totalRevenue || 0).toFixed(1))}</h3>
                   <p>Total Revenue</p>
                 </div>
               </div>
               <div className="stat-card scale-in" style={{animationDelay: '0.1s'}}>
-                <div className="stat-icon">🧾</div>
+                <div className="stat-icon"><Icon name="invoices" size={24} /></div>
                 <div className="stat-info">
                   <h3>{stats.totalInvoices || 0}</h3>
                   <p>Total Invoices</p>
@@ -3999,14 +3999,14 @@ export default function App(){
                   setShowStockAlert(true);
                 }
               }}>
-                <div className="stat-icon">📉</div>
+                <div className="stat-icon"><Icon name="analytics" size={24} /></div>
                 <div className="stat-info">
                   <h3>{stats.lowStockCount || 0}</h3>
                   <p>Low Stock Items</p>
                 </div>
               </div>
               <div className="stat-card scale-in" style={{animationDelay: '0.3s'}}>
-                <div className="stat-icon">📈</div>
+                <div className="stat-icon"><Icon name="analytics" size={24} /></div>
                 <div className="stat-info">
                   <h3>₹{((stats.todaySales || 0).toFixed(1))}</h3>
                   <p>Today's Sales</p>
@@ -4014,7 +4014,7 @@ export default function App(){
               </div>
 
               <div className="stat-card scale-in" style={{animationDelay: '0.4s'}}>
-                <div className="stat-icon">💰</div>
+                <div className="stat-icon"><Icon name="cash" size={24} /></div>
                 <div className="stat-info">
                   <h3>₹{((stats.todayProfit || 0).toFixed(1))}</h3>
                   <p>Today's Profit</p>
@@ -4049,7 +4049,7 @@ export default function App(){
                 <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                   <input 
                     type="text" 
-                    placeholder="🔍 Search products..." 
+                    placeholder="Search products..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -4082,7 +4082,7 @@ export default function App(){
                     onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                     title="Enter barcode manually"
                   >
-                    📊 Barcode
+                    <Icon name="analytics" size={16} /> Barcode
                   </button>
                   <button
                     onClick={() => {
@@ -4105,7 +4105,7 @@ export default function App(){
                     onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                     title="Scan barcode/QR code"
                   >
-                    📷 Scan
+                    <Icon name="analytics" size={16} /> Scan
                   </button>
                 </div>
               </div>
@@ -4174,7 +4174,7 @@ export default function App(){
                         </div>
                       )}
                       <div><strong>{p.name}</strong></div>
-                      {p.barcode && <div style={{fontSize: '10px', color: '#999', fontFamily: 'monospace'}}>📊 {p.barcode}</div>}
+                      {p.barcode && <div style={{fontSize: '10px', color: '#999', fontFamily: 'monospace'}}><Icon name="analytics" size={10} /> {p.barcode}</div>}
                       <div>Qty: {p.quantity} • ₹{p.price}</div>
                       <button 
                         onClick={()=>{
@@ -4184,7 +4184,7 @@ export default function App(){
                         disabled={p.quantity === 0}
                         style={{opacity: p.quantity === 0 ? 0.5 : 1, cursor: p.quantity === 0 ? 'not-allowed' : 'pointer'}}
                       >
-                        {p.quantity === 0 ? '🚫 Out of Stock' : '➕ Add'}
+                        {p.quantity === 0 ? <><Icon name="close" size={16} /> Out of Stock</> : '➕ Add'}
                       </button>
                     </li>
                   ))
@@ -4222,7 +4222,7 @@ export default function App(){
                         onMouseOut={(e)=>{e.target.style.background='white'; e.target.style.color='#e53e3e'}}
                         title="Decrease quantity"
                       >
-                        ➖
+                        <Icon name="close" size={16} />
                       </button>
                       <span style={{minWidth:'40px', textAlign:'center', fontWeight:'bold', fontSize:'16px'}}>{it.quantity}</span>
                       <button 
@@ -4232,7 +4232,7 @@ export default function App(){
                         onMouseOut={(e)=>{e.target.style.background='white'; e.target.style.color='#48bb78'}}
                         title="Increase quantity"
                       >
-                        ➕
+                        <Icon name="add" size={16} />
                       </button>
                       <button 
                         onClick={()=>removeFromCart(it.productId)} 
@@ -4241,7 +4241,7 @@ export default function App(){
                         onMouseOut={(e)=>e.target.style.background='#f56565'}
                         title="Remove item"
                       >
-                        🗑️
+                        <Icon name="trash" size={16} />
                       </button>
                       <span style={{minWidth:'70px', textAlign:'right', fontWeight:'bold'}}>₹{(it.price*it.quantity).toFixed(1)}</span>
                     </div>
@@ -4293,10 +4293,10 @@ export default function App(){
                     setPaymentMode(e.target.value);
                   }
                 }}>
-                  <option value={PAYMENT_MODES.CASH}>💵 Cash</option>
-                  <option value={PAYMENT_MODES.CARD}>💳 Card</option>
-                  <option value={PAYMENT_MODES.UPI}>📱 UPI</option>
-                  <option value={PAYMENT_MODES.SPLIT}>💰 Split Payment</option>
+                  <option value={PAYMENT_MODES.CASH}><Icon name="cash" size={16} /> Cash</option>
+                  <option value={PAYMENT_MODES.CARD}><Icon name="card" size={16} /> Card</option>
+                  <option value={PAYMENT_MODES.UPI}><Icon name="spark" size={16} /> UPI</option>
+                  <option value={PAYMENT_MODES.SPLIT}><Icon name="cash" size={16} /> Split Payment</option>
                 </select>
               </div>
 
@@ -4336,7 +4336,7 @@ export default function App(){
                     </div>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px'}}>
                       <div className="form-group" style={{marginBottom: '0'}}>
-                        <label style={{fontSize: '13px'}}>💵 Cash</label>
+                        <label style={{fontSize: '13px'}}><Icon name="cash" size={14} /> Cash</label>
                         <input 
                           type="number" 
                           value={cashAmount} 
@@ -4348,7 +4348,7 @@ export default function App(){
                         />
                       </div>
                       <div className="form-group" style={{marginBottom: '0'}}>
-                        <label style={{fontSize: '13px'}}>📱 UPI</label>
+                        <label style={{fontSize: '13px'}}><Icon name="spark" size={14} /> UPI</label>
                         <input 
                           type="number" 
                           value={upiAmount} 
@@ -4360,7 +4360,7 @@ export default function App(){
                       />
                     </div>
                     <div className="form-group" style={{marginBottom: '0'}}>
-                      <label style={{fontSize: '13px'}}>💳 Card</label>
+                      <label style={{fontSize: '13px'}}><Icon name="card" size={14} /> Card</label>
                       <input 
                         type="number" 
                         value={cardAmount} 
@@ -4380,7 +4380,7 @@ export default function App(){
                       color: isValid ? '#2f855a' : '#c53030',
                       fontSize: '14px'
                     }}>
-                      {isValid ? '✓ Exact Amount' : `⚠️ ${remaining > 0 ? 'Remaining' : 'Excess'}: ${formatCurrency(Math.abs(remaining))}`}
+                      {isValid ? '✓ Exact Amount' : `<Icon name="analytics" size={14} /> ${remaining > 0 ? 'Remaining' : 'Excess'}: ${formatCurrency(Math.abs(remaining))}`}
                     </div>
                   </div>
                 );
@@ -4456,7 +4456,7 @@ export default function App(){
             {/* Filter and Sort Controls */}
             <div className="product-controls fade-in">
               <div className="filter-group">
-                <label>🔍 Filter:</label>
+                <label>Filter:</label>
                 <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className="control-select">
                   <option value="all">All Products ({products.length})</option>
                   <option value="low-stock">Low Stock ({products.filter(p => p.quantity > 0 && p.quantity < 10).length})</option>
@@ -4465,7 +4465,7 @@ export default function App(){
                 </select>
               </div>
               <div className="filter-group">
-                <label>📊 Sort By:</label>
+                <label>Sort By:</label>
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="control-select">
                   <option value="name">Name (A-Z)</option>
                   <option value="stock">Stock (Low to High)</option>
@@ -4478,6 +4478,7 @@ export default function App(){
             <table>
               <thead>
                 <tr>
+                  <th>Photo</th>
                   <th>SI No</th>
                   <th>Name</th>
                   <th>Stock</th>
@@ -4490,6 +4491,46 @@ export default function App(){
               <tbody>
                 {getFilteredProducts().map((prod, index) => (
                   <tr key={prod.id} className="fade-in table-row-hover">
+                    <td>
+                      <div style={{position:'relative',width:'60px',height:'60px'}}>
+                        {(prod.photo || prod.photoUrl) ? (
+                          <img 
+                            src={(prod.photo || prod.photoUrl).startsWith('http') ? (prod.photo || prod.photoUrl) : API(prod.photo || prod.photoUrl)} 
+                            alt={prod.name}
+                            style={{
+                              width:'60px',
+                              height:'60px',
+                              objectFit:'contain',
+                              borderRadius:'8px',
+                              border:'2px solid #e5e7eb',
+                              background:'#f8f9fa'
+                            }}
+                            onError={(e) => {
+                              console.error('Image load error for product:', prod.name, 'URL:', e.target.src);
+                              e.target.style.display = 'none';
+                              const fallback = document.createElement('div');
+                              fallback.style.cssText = 'width:60px;height:60px;background:linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#9ca3af;';
+                              fallback.innerHTML = 'No Image';
+                              e.target.parentElement.replaceChild(fallback, e.target);
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width:'60px',
+                            height:'60px',
+                            background:'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)',
+                            borderRadius:'8px',
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent:'center',
+                            fontSize:'24px',
+                            color:'#9ca3af'
+                          }}>
+                            No Image
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td style={{fontFamily:'monospace', fontSize:'0.9em'}}>{index + 1}</td>
                     <td>
                       <span onClick={() => {setSelectedProduct(prod); setShowProductDetails(true);}} style={{cursor:'pointer', textDecoration:'underline', color:'#3498db'}}>
@@ -4533,11 +4574,11 @@ export default function App(){
         {tab==='inventory' && (
           <div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-              <h2>📦 Inventory Management</h2>
+              <h2><Icon name="products" size={20} /> Inventory Management</h2>
               <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                 <input 
                   type="text" 
-                  placeholder="🔍 Search products..." 
+                  placeholder="Search products..." 
                   value={searchQuery} 
                   onChange={e=>setSearchQuery(e.target.value)}
                   style={{padding:'8px 12px',borderRadius:'6px',border:'1px solid #ddd',minWidth:'250px'}}
@@ -4548,19 +4589,19 @@ export default function App(){
             {/* Stock Status Summary */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:'15px',marginBottom:'25px'}}>
               <div style={{background:'linear-gradient(135deg, #10b981 0%, #059669 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
-                <div style={{fontSize:'14px',opacity:'0.9'}}>✅ In Stock</div>
+                <div style={{fontSize:'14px',opacity:'0.9'}}>In Stock</div>
                 <div style={{fontSize:'32px',fontWeight:'bold',marginTop:'8px'}}>
                   {products.filter(p => p.quantity >= 10).length}
                 </div>
               </div>
               <div style={{background:'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
-                <div style={{fontSize:'14px',opacity:'0.9'}}>⚠️ Low Stock</div>
+                <div style={{fontSize:'14px',opacity:'0.9'}}>Low Stock</div>
                 <div style={{fontSize:'32px',fontWeight:'bold',marginTop:'8px'}}>
                   {products.filter(p => p.quantity > 0 && p.quantity < 10).length}
                 </div>
               </div>
               <div style={{background:'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',padding:'20px',borderRadius:'10px',color:'white',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
-                <div style={{fontSize:'14px',opacity:'0.9'}}>❌ Out of Stock</div>
+                <div style={{fontSize:'14px',opacity:'0.9'}}>Out of Stock</div>
                 <div style={{fontSize:'32px',fontWeight:'bold',marginTop:'8px'}}>
                   {products.filter(p => p.quantity === 0).length}
                 </div>
@@ -4601,7 +4642,7 @@ export default function App(){
                               e.target.style.display = 'none';
                               const fallback = document.createElement('div');
                               fallback.style.cssText = 'width:60px;height:60px;background:linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#9ca3af;';
-                              fallback.innerHTML = '📦';
+                              fallback.innerHTML = 'No Image';
                               e.target.parentElement.replaceChild(fallback, e.target);
                             }}
                           />
@@ -4617,7 +4658,7 @@ export default function App(){
                             fontSize:'24px',
                             color:'#9ca3af'
                           }}>
-                            📦
+                            No Image
                           </div>
                         )}
                         <input
@@ -4653,7 +4694,7 @@ export default function App(){
                           }}
                           title="Upload photo"
                         >
-                          📷
+                          <Icon name="analytics" size={16} />
                         </button>
                       </div>
                     </td>
@@ -4673,7 +4714,7 @@ export default function App(){
                               fontSize:'0.85em'
                             }}
                           >
-                            📊 View Barcode
+                            <Icon name="analytics" size={12} /> View Barcode
                           </button>
                         </div>
                       )}
@@ -4723,7 +4764,7 @@ export default function App(){
                           className="btn-primary" 
                           style={{padding:'6px 12px',whiteSpace:'nowrap'}}
                         >
-                          💾 Update
+                          <Icon name="check" size={16} /> Update
                         </button>
                       </div>
                     </td>
@@ -4732,7 +4773,7 @@ export default function App(){
                 {getFilteredProducts().length === 0 && (
                   <tr>
                     <td colSpan="7" style={{textAlign:'center',padding:'60px 20px'}}>
-                      <div style={{fontSize:'48px',marginBottom:'16px'}}>📦</div>
+                      <div style={{fontSize:'48px',marginBottom:'16px'}}>No Products</div>
                       <div style={{fontSize:'18px',color:'#666',marginBottom:'8px',fontWeight:'500'}}>
                         {searchQuery ? 'No products found' : 'No products yet'}
                       </div>
@@ -4790,7 +4831,7 @@ export default function App(){
                           fontSize: '12px'
                         }}
                       >
-                        📊 View History
+                        <Icon name="analytics" size={16} /> View History
                       </button>
                     </td>
                   </tr>
@@ -4798,7 +4839,7 @@ export default function App(){
                 {customers.length === 0 && (
                   <tr>
                     <td colSpan="6" style={{textAlign:'center',padding:'60px 20px'}}>
-                      <div style={{fontSize:'48px',marginBottom:'16px'}}>👥</div>
+                      <div style={{fontSize:'48px',marginBottom:'16px'}}><Icon name="customers" size={48} /></div>
                       <div style={{fontSize:'18px',color:'#666',marginBottom:'8px',fontWeight:'500'}}>
                         No customers yet
                       </div>
@@ -4816,7 +4857,7 @@ export default function App(){
         {tab==='analytics' && (
           <div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'30px'}}>
-              <h2>📊 Analytics Dashboard</h2>
+              <h2><Icon name="analytics" size={20} /> Analytics Dashboard</h2>
               <div>
                 <label>Date Range: </label>
                 <select 
@@ -4868,7 +4909,7 @@ export default function App(){
             {/* Top Products */}
             {analyticsData.topProducts && analyticsData.topProducts.length > 0 && (
               <div style={{marginBottom:'30px',background:'#fff',padding:'20px',borderRadius:'8px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
-                <h3>🏆 Top Selling Products</h3>
+                <h3>Top Selling Products</h3>
                 <table>
                   <thead>
                     <tr>
@@ -4895,7 +4936,7 @@ export default function App(){
             {/* Low Stock Items */}
             {analyticsData.lowStock && analyticsData.lowStock.length > 0 && (
               <div style={{background:'#fff',padding:'20px',borderRadius:'8px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
-                <h3>⚠️ Low Stock Alerts</h3>
+                <h3>Low Stock Alerts</h3>
                 <table>
                   <thead>
                     <tr>
@@ -4933,7 +4974,7 @@ export default function App(){
 
             {(!analyticsData.revenueSummary || Object.keys(analyticsData.revenueSummary).length === 0) && (
               <div className="empty-state">
-                <div className="empty-icon">📊</div>
+                <div className="empty-icon"><Icon name="analytics" size={48} /></div>
                 <h3>No Analytics Data Yet</h3>
                 <p>Make some sales to see analytics insights</p>
                 <button onClick={() => setTab('pos')} style={{marginTop:'20px',padding:'12px 24px',background:'#667eea',color:'#fff',border:'none',borderRadius:'8px',cursor:'pointer'}}>
@@ -4950,39 +4991,39 @@ export default function App(){
             
             {/* Download Reports Section */}
             <div className="download-reports-section">
-              <h3>📥 Download Reports</h3>
+              <h3>Download Reports</h3>
               <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in CSV format</p>
               <div className="download-buttons-grid">
                 <button onClick={downloadSalesCSV} className="download-btn sales">
-                  <span className="btn-icon">📊</span>
+                  <span className="btn-icon"><Icon name="analytics" size={16} /></span>
                   <div>
                     <strong>Sales Report (CSV)</strong>
                     <small>All invoices with profit details</small>
                   </div>
                 </button>
                 <button onClick={downloadInventoryCSV} className="download-btn inventory">
-                  <span className="btn-icon">📦</span>
+                  <span className="btn-icon"><Icon name="products" size={16} /></span>
                   <div>
                     <strong>Inventory Report (CSV)</strong>
                     <small>Stock levels & pricing</small>
                   </div>
                 </button>
                 <button onClick={exportProductsToPDF} className="download-btn inventory">
-                  <span className="btn-icon">�</span>
+                  <span className="btn-icon"><Icon name="products" size={16} /></span>
                   <div>
                     <strong>Products (PDF)</strong>
                     <small>Complete product list</small>
                   </div>
                 </button>
                 <button onClick={downloadCustomerCSV} className="download-btn customers">
-                  <span className="btn-icon">�</span>
+                  <span className="btn-icon"><Icon name="customers" size={16} /></span>
                   <div>
                     <strong>Customer Report</strong>
                     <small>Customer database</small>
                   </div>
                 </button>
                 <button onClick={downloadProfitReport} className="download-btn profit">
-                  <span className="btn-icon">�</span>
+                  <span className="btn-icon"><Icon name="analytics" size={16} /></span>
                   <div>
                     <strong>Profit Analysis</strong>
                     <small>Financial overview</small>
@@ -4994,19 +5035,19 @@ export default function App(){
             {/* Summary Cards */}
             <div className="reports-grid" style={{marginTop:'30px'}}>
               <div className="report-card">
-                <h3>📊 Sales Summary</h3>
+                <h3><Icon name="analytics" size={20} /> Sales Summary</h3>
                 <p>Total Revenue: ₹{stats.totalRevenue || 0}</p>
                 <p>Total Invoices: {stats.totalInvoices || 0}</p>
                 <p>Average Sale: ₹{stats.totalInvoices > 0 ? Math.round(stats.totalRevenue / stats.totalInvoices) : 0}</p>
               </div>
               <div className="report-card">
-                <h3>📦 Inventory Status</h3>
+                <h3><Icon name="products" size={20} /> Inventory Status</h3>
                 <p>Total Products: {stats.totalProducts || 0}</p>
                 <p>Low Stock Items: {stats.lowStockCount || 0}</p>
                 <p>Well Stocked: {(stats.totalProducts || 0) - (stats.lowStockCount || 0)}</p>
               </div>
               <div className="report-card">
-                <h3>👥 Customer Insights</h3>
+                <h3><Icon name="customers" size={20} /> Customer Insights</h3>
                 <p>Total Customers: {stats.totalCustomers || 0}</p>
                 <p>Today's Sales: ₹{stats.todaySales || 0}</p>
               </div>
@@ -5018,7 +5059,7 @@ export default function App(){
         {tab==='invoices' && (
           <div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-              <h2>🧾 Invoices</h2>
+              <h2><Icon name="invoices" size={24} /> Invoices</h2>
               <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                 <select 
                   value={invoiceDateFilter} 
@@ -5070,21 +5111,21 @@ export default function App(){
             {/* Summary Cards */}
             <div className="stats-grid" style={{marginBottom:'30px'}}>
               <div className="stat-card">
-                <div className="stat-icon">�</div>
+                <div className="stat-icon"><Icon name="invoices" size={24} /></div>
                 <div className="stat-info">
                   <h3>{getFilteredInvoices().length}</h3>
                   <p>Total Invoices</p>
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon">💰</div>
+                <div className="stat-icon"><Icon name="cash" size={24} /></div>
                 <div className="stat-info">
                   <h3>₹{getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(1)}</h3>
                   <p>Total Revenue</p>
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon">📈</div>
+                <div className="stat-icon"><Icon name="analytics" size={24} /></div>
                 <div className="stat-info">
                   <h3>₹{getFilteredInvoices().length > 0 ? (getFilteredInvoices().reduce((sum, inv) => sum + (inv.total || 0), 0) / getFilteredInvoices().length).toFixed(1) : 0}</h3>
                   <p>Average Sale</p>
@@ -5159,16 +5200,16 @@ export default function App(){
                         <td>
                           {(inv.paymentMode === 'split' || inv.paymentMode === 'Split') && inv.splitPaymentDetails ? (
                             <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
-                              <span className="badge info" style={{fontSize:'11px'}}>💰 Split Payment</span>
+                              <span className="badge info" style={{fontSize:'11px'}}><Icon name="cash" size={10} /> Split Payment</span>
                               <div style={{fontSize:'10px',color:'#666',display:'flex',flexDirection:'column',gap:'2px'}}>
                                 {inv.splitPaymentDetails.cashAmount > 0 && (
-                                  <span>💵 Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</span>
+                                  <span><Icon name="cash" size={10} /> Cash: ₹{inv.splitPaymentDetails.cashAmount.toFixed(1)}</span>
                                 )}
                                 {inv.splitPaymentDetails.upiAmount > 0 && (
-                                  <span>📱 UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</span>
+                                  <span><Icon name="spark" size={10} /> UPI: ₹{inv.splitPaymentDetails.upiAmount.toFixed(1)}</span>
                                 )}
                                 {inv.splitPaymentDetails.cardAmount > 0 && (
-                                  <span>💳 Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</span>
+                                  <span><Icon name="card" size={10} /> Card: ₹{inv.splitPaymentDetails.cardAmount.toFixed(1)}</span>
                                 )}
                               </div>
                             </div>
@@ -5179,9 +5220,9 @@ export default function App(){
                               inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? 'info' : 
                               'info'
                             }`}>
-                              {inv.paymentMode === 'Cash' || inv.paymentMode === 'cash' ? '💵 ' : 
-                               inv.paymentMode === 'UPI' || inv.paymentMode === 'upi' ? '📱 ' : 
-                               inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? '💳 ' : ''}
+                              {inv.paymentMode === 'Cash' || inv.paymentMode === 'cash' ? '<Icon name="cash" size={10} /> ' : 
+                               inv.paymentMode === 'UPI' || inv.paymentMode === 'upi' ? '<Icon name="spark" size={10} /> ' : 
+                               inv.paymentMode === 'Card' || inv.paymentMode === 'card' ? '<Icon name="card" size={10} /> ' : ''}
                               {inv.paymentMode || 'Cash'}
                             </span>
                           )}
@@ -5216,7 +5257,7 @@ export default function App(){
         {tab==='users' && isAdmin && (
           <div className="users-management">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-              <h2>👥 User Management</h2>
+              <h2><Icon name="customers" size={24} /> User Management</h2>
               <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                 <span style={{color:'#000',fontSize:'14px',fontWeight:'500'}}>
                   Total Users: {users.length} | Pending: {users.filter(u=>!u.approved).length}
@@ -5265,9 +5306,9 @@ export default function App(){
                               fontWeight: '500'
                             }}
                           >
-                            <option value="admin">👑 Admin</option>
-                            <option value="manager">👔 Manager</option>
-                            <option value="cashier">💰 Cashier</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="cashier">Cashier</option>
                           </select>
                         </td>
                         <td>
@@ -5279,7 +5320,7 @@ export default function App(){
                               borderRadius: '4px',
                               fontSize: '12px'
                             }}>
-                              ✓ Approved
+                              <Icon name="check" size={12} /> Approved
                             </span>
                           ) : (
                             <span className="badge" style={{
@@ -5289,7 +5330,7 @@ export default function App(){
                               borderRadius: '4px',
                               fontSize: '12px'
                             }}>
-                              ⏳ Pending
+                              <Icon name="clock" size={12} /> Pending
                             </span>
                           )}
                         </td>
@@ -5316,7 +5357,7 @@ export default function App(){
                                   cursor: 'pointer'
                                 }}
                               >
-                                ✓ Approve
+                                <Icon name="check" size={12} /> Approve
                               </button>
                             ) : (
                               <button 
@@ -5331,7 +5372,7 @@ export default function App(){
                                   cursor: 'pointer'
                                 }}
                               >
-                                � Revoke Access
+                                Revoke Access
                               </button>
                             )}
                             <button 
@@ -5351,7 +5392,7 @@ export default function App(){
                                 cursor: 'pointer'
                               }}
                             >
-                              🗑️ Delete
+                              <Icon name="trash" size={12} /> Delete
                             </button>
                           </div>
                         </td>
@@ -5368,9 +5409,9 @@ export default function App(){
         {tab==='audit' && isAdmin && (
           <div className="audit-logs">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-              <h2>📋 Audit Trail Logs</h2>
+              <h2><Icon name="audit" size={24} /> Audit Trail Logs</h2>
               <button onClick={fetchAuditLogs} className="btn-primary" style={{padding:'8px 16px'}}>
-                🔄 Refresh
+                <Icon name="refresh" size={16} /> Refresh
               </button>
             </div>
             
@@ -5491,11 +5532,11 @@ export default function App(){
       {showMobileMore && (
         <div className="mobile-more-overlay" onClick={()=>setShowMobileMore(false)}>
           <div className="mobile-more-sheet" onClick={e=>e.stopPropagation()}>
-            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('inventory') }}>📊 Inventory</button>
-            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()){ handleTabChange('analytics'); fetchAnalyticsData(analyticsDateRange); } }}>📈 Analytics</button>
-            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('reports') }}>📁 Reports</button>
-            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('users'); fetchUsers() }}>👤 Users</button>}
-            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('audit'); fetchAuditLogs() }}>📋 Audit Logs</button>}
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('inventory') }}><Icon name="analytics" size={16} /> Inventory</button>
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()){ handleTabChange('analytics'); fetchAnalyticsData(analyticsDateRange); } }}><Icon name="analytics" size={16} /> Analytics</button>
+            <button onClick={async ()=>{ setShowMobileMore(false); if(await checkUserValidity()) handleTabChange('reports') }}><Icon name="analytics" size={16} /> Reports</button>
+            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('users'); fetchUsers() }}><Icon name="customers" size={16} /> Users</button>}
+            {isAdmin && <button onClick={()=>{ setShowMobileMore(false); handleTabChange('audit'); fetchAuditLogs() }}><Icon name="audit" size={16} /> Audit Logs</button>}
             <div style={{height:8}} />
             <button className="btn-secondary" onClick={()=>setShowMobileMore(false)}>Close</button>
           </div>
@@ -5639,7 +5680,7 @@ export default function App(){
       {showCustomerHistory && selectedCustomerHistory && (
         <div className="modal-overlay" onClick={()=>setShowCustomerHistory(false)}>
           <div className="modal-content" style={{maxWidth: '900px'}} onClick={(e)=>e.stopPropagation()}>
-            <h2>📊 Purchase History - {selectedCustomerHistory.name}</h2>
+            <h2><Icon name="analytics" size={24} /> Purchase History - {selectedCustomerHistory.name}</h2>
             <div style={{marginBottom: '20px', padding: '15px', background: '#f7fafc', borderRadius: '8px'}}>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
                 <p><strong>Phone:</strong> {selectedCustomerHistory.phone}</p>
@@ -5697,7 +5738,7 @@ export default function App(){
               </div>
             ) : (
               <div style={{textAlign: 'center', padding: '40px', color: '#999'}}>
-                <div style={{fontSize: '48px', marginBottom: '10px'}}>🛍️</div>
+                <div style={{fontSize: '48px', marginBottom: '10px'}}><Icon name="products" size={48} /></div>
                 <p>No purchase history found for this customer</p>
               </div>
             )}
@@ -5721,7 +5762,7 @@ export default function App(){
           }}>
             <div id="bill-print-content">
               <div className="bill-header">
-                <h2>⚡ 26:07 ELECTRONICS</h2>
+                <h2><Icon name="spark" size={24} /> 26:07 ELECTRONICS</h2>
                 <h3>Premium Electronics & Smart Solutions</h3>
                 <p>Tax Invoice</p>
               </div>
@@ -5817,7 +5858,7 @@ export default function App(){
       {showBarcodeScanner && (
         <div className="modal-overlay" onClick={() => {setShowBarcodeScanner(false); setScannedBarcode('');}}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>📷 Scan Barcode/QR Code</h2>
+            <h2><Icon name="analytics" size={24} /> Scan Barcode/QR Code</h2>
             <div style={{marginBottom: '20px'}}>
               <div id="qr-reader" style={{width: '100%', maxWidth: '500px', margin: '0 auto'}}></div>
             </div>
@@ -5856,7 +5897,7 @@ export default function App(){
       {showBarcodeModal && barcodeProduct && (
         <div className="modal-overlay" onClick={() => {setShowBarcodeModal(false); setBarcodeImage(null); setQrCodeImage(null);}}>
           <div className="modal-content" style={{maxWidth: '600px'}} onClick={(e) => e.stopPropagation()}>
-            <h2>📊 Product Barcode & QR Code</h2>
+            <h2><Icon name="analytics" size={24} /> Product Barcode & QR Code</h2>
             
             <div style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
