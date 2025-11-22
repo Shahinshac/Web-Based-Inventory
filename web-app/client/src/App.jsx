@@ -2,6 +2,7 @@ import React, {useEffect, useState, useRef} from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { initAnalytics, trackPageView, trackEvent, trackUserInteraction } from './analytics'
 import Login from './Login'
+import Icon from './Icon'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { DEFAULT_GST, GST_PERCENT, fmt1, formatCurrency, PAYMENT_MODES, PAYMENT_MODE_LABELS, validateSplitPayment } from './constants'
@@ -3931,8 +3932,8 @@ export default function App(){
               <button onClick={() => {
                 quickAddToCart(selectedProduct, 1);
                 setShowProductDetails(false);
-              }} className="btn-primary" disabled={selectedProduct.quantity === 0}>
-                🛒 Add to Cart
+              }} className="btn-primary important-btn btn-icon" disabled={selectedProduct.quantity === 0}>
+                <Icon name="add"/> <span className="label">Add to Cart</span>
               </button>
               <button onClick={() => setShowProductDetails(false)} className="btn-secondary">Close</button>
             </div>
@@ -3956,16 +3957,16 @@ export default function App(){
           <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}>🚪</button>
         </div>
         <nav>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={tab==='dashboard'?'active':''}>📱 Dashboard</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={tab==='pos'?'active':''}>💳 Transactions</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={tab==='products'?'active':''}>📦 Products</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={tab==='inventory'?'active':''}>📊 Inventory</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={tab==='customers'?'active':''}>👥 Customers</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={tab==='invoices'?'active':''}>🧾 Invoices</button>
-          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={tab==='analytics'?'active':''}>� Analytics</button>
-          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={tab==='reports'?'active':''}>� Reports</button>
-          {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={tab==='users'?'active':''}>👤 Users</button>}
-          {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={tab==='audit'?'active':''}>📋 Audit Logs</button>}
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={`${tab==='dashboard' ? 'active' : ''} btn-icon`}><Icon name="dashboard"/> <span className="label">Dashboard</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={`${tab==='pos' ? 'active' : ''} btn-icon`}><Icon name="pos"/> <span className="label">Transactions</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('products')}} className={`${tab==='products' ? 'active' : ''} btn-icon`}><Icon name="products"/> <span className="label">Products</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('inventory')}} className={`${tab==='inventory' ? 'active' : ''} btn-icon`}><Icon name="analytics"/> <span className="label">Inventory</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('customers')}} className={`${tab==='customers' ? 'active' : ''} btn-icon`}><Icon name="customers"/> <span className="label">Customers</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('invoices')}} className={`${tab==='invoices' ? 'active' : ''} btn-icon`}><Icon name="invoices"/> <span className="label">Invoices</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity()){handleTabChange('analytics');fetchAnalyticsData(analyticsDateRange);}}} className={`${tab==='analytics' ? 'active' : ''} btn-icon`}><Icon name="analytics"/> <span className="label">Analytics</span></button>
+          <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('reports')}} className={`${tab==='reports' ? 'active' : ''} btn-icon`}><Icon name="reports"/> <span className="label">Reports</span></button>
+          {isAdmin && <button onClick={()=>{handleTabChange('users');setShowUserManagement(true);fetchUsers()}} className={`${tab==='users'?'active':''} btn-icon`}><Icon name="users"/> <span className="label">Users</span></button>}
+          {isAdmin && <button onClick={()=>{handleTabChange('audit');fetchAuditLogs()}} className={`${tab==='audit'?'active':''} btn-icon`}><Icon name="audit"/> <span className="label">Audit Logs</span></button>}
           <span style={{display:'inline-flex', alignItems:'center', gap:'10px', marginLeft:'20px', whiteSpace:'nowrap'}}>
             <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
             <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78'}}>🚪 Logout</button>
@@ -4440,7 +4441,7 @@ export default function App(){
                 <span className="spinner-small"></span> Processing...
               </>
             ) : (
-              '💳 Complete Sale'
+              <><Icon name="pos"/> <span>Complete Sale</span></>
             )}
           </button>
         </div>
@@ -4449,7 +4450,7 @@ export default function App(){
           <div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
               <h2>Product Inventory</h2>
-              <button onClick={()=>requireAuth(()=>setShowAddProduct(true))} className="btn-primary">+ Add Product</button>
+              <button onClick={()=>requireAuth(()=>setShowAddProduct(true))} className="btn-primary btn-icon important-btn"><Icon name="add"/> <span className="label">Add Product</span></button>
             </div>
             
             {/* Filter and Sort Controls */}
@@ -5134,15 +5135,17 @@ export default function App(){
                           <button
                             onClick={() => sendInvoiceWhatsApp(inv)}
                             title="Send invoice via WhatsApp"
+                            className="fancy-btn"
                             style={{padding:'6px 10px', background:'#25D366', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', marginRight:'6px'}}
                           >
-                            📲 WhatsApp
+                            <Icon name="whatsapp" /> <span className="label">WhatsApp</span>
                           </button>
                           <button
                             onClick={() => { setLastBill(inv); setShowBill(true); }}
                             style={{padding:'6px 10px', background:'#667eea', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                            className="btn-icon"
                           >
-                            🔍 View
+                            <Icon name="products"/> <span className="label">View</span>
                           </button>
                         </td>
                         <td>
@@ -5187,15 +5190,17 @@ export default function App(){
                           <button
                             onClick={() => sendInvoiceWhatsApp(inv)}
                             title="Send invoice via WhatsApp"
+                            className="fancy-btn"
                             style={{padding:'6px 10px', background:'#25D366', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', marginRight:'6px'}}
                           >
-                            📲 WhatsApp
+                            <Icon name="whatsapp"/> <span className="label">WhatsApp</span>
                           </button>
                           <button
                             onClick={() => { setLastBill(inv); setShowBill(true); }}
                             style={{padding:'6px 10px', background:'#667eea', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                            className="btn-icon"
                           >
-                            🔍 View
+                            <Icon name="products"/> <span className="label">View</span>
                           </button>
                         </td>
                       </tr>
@@ -5475,11 +5480,11 @@ export default function App(){
 
       {/* Mobile bottom navigation (small screens) */}
       <div className="mobile-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
-        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('dashboard') }} className={tab==='dashboard' ? 'active' : ''}><div>🏠</div><small>Home</small></button>
-        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('pos') }} className={tab==='pos' ? 'active' : ''}><div>💳</div><small>POS</small></button>
-        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('products') }} className={tab==='products' ? 'active' : ''}><div>📦</div><small>Products</small></button>
-        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('customers') }} className={tab==='customers' ? 'active' : ''}><div>👥</div><small>Customers</small></button>
-        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('invoices') }} className={tab==='invoices' ? 'active' : ''}><div>🧾</div><small>Invoices</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('dashboard') }} className={`${tab==='dashboard' ? 'active' : ''} btn-icon`}><Icon name="dashboard"/><small>Home</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('pos') }} className={`${tab==='pos' ? 'active' : ''} btn-icon`}><Icon name="pos"/><small>POS</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('products') }} className={`${tab==='products' ? 'active' : ''} btn-icon`}><Icon name="products"/><small>Products</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('customers') }} className={`${tab==='customers' ? 'active' : ''} btn-icon`}><Icon name="customers"/><small>Customers</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('invoices') }} className={`${tab==='invoices' ? 'active' : ''} btn-icon`}><Icon name="invoices"/><small>Invoices</small></button>
         <button aria-label="More" onClick={()=>setShowMobileMore(true)}><div>⋯</div><small>More</small></button>
       </div>
 
@@ -5772,13 +5777,13 @@ export default function App(){
             </div>
 
             <div className="modal-actions" style={{marginTop:'20px'}}>
-              <button onClick={printBill} className="btn-primary">🖨️ Print Bill</button>
+              <button onClick={printBill} className="btn-primary important-btn btn-icon"><Icon name="print"/> <span className="label">Print Bill</span></button>
               <button
                 onClick={() => { if (!lastBill) return; downloadInvoicePDF(lastBill); }}
                 className="btn-primary"
                 style={{background:'#2b6cb0', marginLeft:'8px'}}
               >
-                ⬇️ Download PDF
+                <Icon name="download"/> <span className="label">Download PDF</span>
               </button>
               <button
                 onClick={() => {
@@ -5790,7 +5795,7 @@ export default function App(){
                 className="btn-primary"
                 style={{background:'#1f7a8c', marginLeft:'8px'}}
               >
-                ⬇️ Download (Server PDF)
+                <Icon name="download"/> <span className="label">Server PDF</span>
               </button>
               <button
                 onClick={() => {
@@ -5800,7 +5805,7 @@ export default function App(){
                 className="btn-primary"
                 style={{background:'#25D366', marginLeft:'8px'}}
               >
-                📲 Send via WhatsApp
+                <Icon name="whatsapp"/> <span className="label">Send via WhatsApp</span>
               </button>
               <button onClick={()=>setShowBill(false)} className="btn-secondary">Close</button>
             </div>
@@ -5955,10 +5960,10 @@ export default function App(){
             <div className="modal-actions">
               <button 
                 onClick={printBarcode}
-                className="btn-primary"
+                className="btn-primary important-btn btn-icon"
                 disabled={!barcodeImage}
               >
-                🖨️ Print Barcode
+                <Icon name="print"/> <span className="label">Print Barcode</span>
               </button>
               <button 
                 onClick={() => {
@@ -5967,11 +5972,11 @@ export default function App(){
                   link.href = barcodeImage;
                   link.click();
                 }}
-                className="btn-primary"
+                className="btn-primary btn-icon"
                 style={{background: '#10b981'}}
                 disabled={!barcodeImage}
               >
-                💾 Download Barcode
+                <Icon name="download"/> <span className="label">Download Barcode</span>
               </button>
               <button 
                 onClick={() => {
@@ -5980,11 +5985,11 @@ export default function App(){
                   link.href = qrCodeImage;
                   link.click();
                 }}
-                className="btn-primary"
+                className="btn-primary btn-icon"
                 style={{background: '#8b5cf6'}}
                 disabled={!qrCodeImage}
               >
-                💾 Download QR Code
+                <Icon name="download"/> <span className="label">Download QR</span>
               </button>
               <button 
                 onClick={() => {

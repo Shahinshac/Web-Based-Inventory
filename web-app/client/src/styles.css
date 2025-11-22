@@ -555,14 +555,14 @@ ul:not(.products):not(.cart) li:hover {
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 600;
+  transition: all 0.24s cubic-bezier(.2,.9,.2,1);
+  font-weight: 700;
   flex: 1;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 36px rgba(102,126,234,0.22);
 }
 
 .btn-secondary {
@@ -572,7 +572,7 @@ ul:not(.products):not(.cart) li:hover {
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.24s cubic-bezier(.2,.9,.2,1);
   flex: 1;
 }
 
@@ -593,9 +593,23 @@ ul:not(.products):not(.cart) li:hover {
 }
 
 .btn-danger:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(248,80,50,0.4);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 18px rgba(248,80,50,0.36);
 }
+
+/* Icon button helpers */
+.btn-icon { display:inline-flex; align-items:center; gap:8px; justify-content:center }
+.btn-icon .icon { width:18px; height:18px; display:inline-flex }
+.btn-icon .label { display:inline-block }
+
+/* Important / primary button upgrade */
+.important-btn { border-radius:14px; padding:12px 18px; font-weight:800; box-shadow: 0 10px 30px rgba(102,126,234,0.18); text-transform:none }
+.important-btn .icon { width:18px; height:18px }
+.important-btn:focus { box-shadow: 0 0 0 6px rgba(102,126,234,0.10) }
+
+/* Make icons slightly larger for btn-primary in certain places */
+.btn-primary .icon { width:18px; height:18px }
+.fancy-btn .icon { width:16px; height:16px }
 
 /* Dashboard Stats Grid */
 .dashboard {
