@@ -806,60 +806,11 @@ export default function App(){
         pendingAction()
         setPendingAction(null)
       }
-    } else {
-      // Regular user login
-      try {
-        const res = await fetch(API('/api/users/login'), {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ username: authUsername, password: authPassword })
-        })
-        
-        const data = await res.json()
-        
-        if (res.ok && data.user) {
-          if (!data.user.approved) {
-            setAuthError('Your account is pending admin approval.')
-            setAuthUsername('')
-            setAuthPassword('')
-            return
-          }
-          
-          // User login successful
-          const isAdminUser = data.user.role === 'admin'
-          localStorage.setItem('currentUser', JSON.stringify(data.user))
-          localStorage.setItem('isAdmin', isAdminUser ? 'true' : 'false')
-          localStorage.setItem('userRole', data.user.role || 'cashier') // Default to cashier
-
-          setIsAuthenticated(true)
-          setIsAdmin(isAdminUser)
-          setUserRole(data.user.role || 'cashier') // Default to cashier
-          setCurrentUser(data.user)
-          setShowAuthModal(false)
-          setAuthError('')
-          setAuthUsername('')
-          setAuthPassword('')
-
-          alert(`✅ Welcome ${data.user.username}! You're now logged in.`)
-
-          if (isAdminUser) {
-            fetchUsers()
-          }
-
-          if (pendingAction) {
-            pendingAction()
-            setPendingAction(null)
-          }
-        } else {
-          setAuthError(data.error || 'Invalid username or password!')
-          setAuthPassword('')
-        }
-      } catch(e) {
-        console.error('Login error:', e)
-        setAuthError('Login failed. Please try again.')
-        setAuthPassword('')
-      }
     }
+    // Disallow regular user logins - only admin allowed in this installation
+    setAuthError('Only admin login is allowed.')
+    setAuthPassword('')
+    return
   }
   
   // Logout function
