@@ -5045,6 +5045,21 @@ export default function App(){
                             </span>
                           )}
                         </td>
+                        <td style={{whiteSpace:'nowrap'}}>
+                          <button
+                            onClick={() => sendInvoiceWhatsApp(inv)}
+                            title="Send invoice via WhatsApp"
+                            style={{padding:'6px 10px', background:'#25D366', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', marginRight:'6px'}}
+                          >
+                            📲 WhatsApp
+                          </button>
+                          <button
+                            onClick={() => { setLastBill(inv); setShowBill(true); }}
+                            style={{padding:'6px 10px', background:'#667eea', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                          >
+                            🔍 View
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
