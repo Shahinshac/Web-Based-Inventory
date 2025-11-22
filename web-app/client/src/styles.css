@@ -159,8 +159,9 @@ body {
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   animation: scaleIn 0.5s ease-out;
   min-height: 500px;
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
+  /* allow page to control scrolling — remove internal scrollbar */
+  max-height: none;
+  overflow-y: visible;
   display: flex;
   flex-direction: column;
 }
@@ -183,8 +184,9 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 500px;
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
+  /* allow page to control scrolling — remove internal scrollbar */
+  max-height: none;
+  overflow-y: visible;
   position: sticky;
   top: 100px;
 }
@@ -206,7 +208,8 @@ h2 {
   padding: 0;
   flex: 1;
   align-content: start;
-  overflow-y: auto;
+  /* let page scroll instead of inner product list */
+  overflow-y: visible;
   padding-right: 10px;
 }
 
@@ -337,9 +340,10 @@ h2 {
   padding: 0;
   padding-right: 5px;
   flex: 1;
-  overflow-y: auto;
+  /* let page scroll instead of internal cart scroll */
+  overflow-y: visible;
   min-height: 150px;
-  max-height: 400px;
+  max-height: none;
 }
 
 .cart li {

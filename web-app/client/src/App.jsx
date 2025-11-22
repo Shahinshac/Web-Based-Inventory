@@ -4757,7 +4757,7 @@ export default function App(){
         )}
 
         {tab==='analytics' && (
-          <div>
+          <div style={{background:'#fff', padding: '18px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'30px'}}>
               <h2><Icon name="analytics" size={20} /> Analytics Dashboard</h2>
               <div>
