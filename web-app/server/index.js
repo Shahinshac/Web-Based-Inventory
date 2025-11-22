@@ -1077,8 +1077,10 @@ app.get('/api/invoices/:id/server-pdf', async (req, res) => {
     doc.fontSize(10).fillColor('#666').text(`Invoice: ${invoice.billNumber || invoice._id}`, { align: 'right' });
     doc.moveDown(0.5);
 
+    const invoiceDateRaw = invoice.billDate || invoice.created_at || invoice.date || new Date().toISOString();
+    const invoiceDateStr = invoiceDateRaw ? new Date(invoiceDateRaw).toLocaleString() : '';
     doc.fontSize(11).fillColor('#222').text(`Customer: ${invoice.customerName || 'Walk-in'}`);
-    doc.text(`Date: ${invoice.billDate ? new Date(invoice.billDate).toLocaleString() : ''}`);
+    doc.text(`Date: ${invoiceDateStr}`);
     doc.moveDown(0.5);
 
     // Table-like items listing
@@ -1095,10 +1097,10 @@ app.get('/api/invoices/:id/server-pdf', async (req, res) => {
     for (const it of items) {
       if (doc.y > doc.page.height - 100) doc.addPage();
       doc.fontSize(9).fillColor('#111');
-      const name = it.productName || it.name || 'Item';
-      const qty = it.quantity || 0;
-      const rate = (it.unitPrice || it.price || 0).toFixed(2);
-      const amount = ((it.unitPrice || it.price || 0) * qty).toFixed(2);
+      const name = String(it.productName || it.name || 'Item').slice(0, 200); // trim very long names
+      const qty = Number(it.quantity || 0);
+      const rate = Number(it.unitPrice || it.price || 0).toFixed(2);
+      const amount = (Number(it.unitPrice || it.price || 0) * qty).toFixed(2);
 
       doc.text(String(idx), { continued: true, width: 40 });
       doc.text(name, { continued: true, width: 260 });

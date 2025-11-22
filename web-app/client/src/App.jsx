@@ -1237,11 +1237,25 @@ export default function App(){
       p.quantity === 0 ? 'Out of Stock' : p.quantity < 10 ? 'Low Stock' : 'In Stock'
     ]);
     
+    // Use column styles and wrapping to avoid overflow
     doc.autoTable({
       startY: 30,
       head: [['SI No', 'Name', 'Stock', 'Price', 'Status']],
       body: tableData,
-      theme: 'striped'
+      theme: 'striped',
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 12 },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 40 }
+      },
+      headStyles: { fillColor: [102, 126, 234] },
+      bodyStyles: { valign: 'middle' },
+      didDrawPage: (data) => {
+        /* no-op but ensures pagination works cleanly */
+      }
     });
     
     doc.save('Products-Report.pdf');
@@ -1264,10 +1278,12 @@ export default function App(){
       startY: 30,
       head: [['Invoice #', 'Customer', 'Amount', 'Payment', 'Date']],
       body: tableData,
-      theme: 'grid'
+      theme: 'grid',
+      styles: { fontSize: 9 },
+      columnStyles: { 0: {cellWidth: 30}, 1: {cellWidth: 70}, 2: {cellWidth: 30}, 3: {cellWidth: 30}, 4: {cellWidth: 30} }
     });
-    
-    const finalY = doc.lastAutoTable.finalY + 10;
+
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 45;
     const total = getFilteredInvoices().reduce((sum, inv) => sum + inv.total, 0);
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
@@ -1280,8 +1296,10 @@ export default function App(){
   // Shared A4 header for PDFs
   function addPDFHeader(doc, title) {
     try {
-      const pageWidth = 210; // mm
+      // compute page width dynamically (supports different formats)
+      const pageWidth = (doc.internal && doc.internal.pageSize && typeof doc.internal.pageSize.getWidth === 'function') ? doc.internal.pageSize.getWidth() : 210;
       doc.setFillColor(102, 126, 234);
+      // draw header band respecting small margin
       doc.rect(0, 0, pageWidth, 28, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
@@ -1457,7 +1475,7 @@ export default function App(){
     });
     
     // Summary
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 45;
     const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || inv.grandTotal || 0), 0);
     const totalProfit = invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0);
     
@@ -1498,7 +1516,7 @@ export default function App(){
     });
     
     // Summary
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 45;
     const lowStock = products.filter(p => p.quantity > 0 && p.quantity < 10).length;
     const outOfStock = products.filter(p => p.quantity === 0).length;
     
@@ -1653,7 +1671,7 @@ export default function App(){
     });
     
     // Add visual emphasis
-    const finalY = doc.lastAutoTable.finalY + 15;
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 15 : 55;
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(46, 204, 113);
@@ -2691,7 +2709,7 @@ export default function App(){
     try {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 12;
-      const pageWidth = 210; // mm
+      const pageWidth = (doc.internal && doc.internal.pageSize && typeof doc.internal.pageSize.getWidth === 'function') ? doc.internal.pageSize.getWidth() : 210; // mm
       const pageHeight = 297; // A4 height mm
       const usableW = pageWidth - margin * 2;
 
@@ -2788,7 +2806,8 @@ export default function App(){
         tableWidth: usableW,
         head: [columns.map(c => c.header)],
         body: items.map(r => [r.sno, r.item, r.qty, r.rate, r.amount]),
-        styles: { fontSize: 8, cellPadding: 1.5 },
+        styles: { fontSize: 8, cellPadding: 1.5, overflow: 'linebreak' },
+        columnStyles: { 0: { cellWidth: 12 }, 1: { cellWidth: usableW - 12 - 20 - 28 - 28 }, 2: { cellWidth: 20 }, 3: { cellWidth: 28 }, 4: { cellWidth: 28 } },
         headStyles: { fillColor: [102,126,234], textColor: 255 },
         theme: 'striped',
         // show header on each page and support custom page header/footer
@@ -2807,7 +2826,7 @@ export default function App(){
         }
       });
 
-      let finalY = doc.lastAutoTable.finalY + 6;
+      let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 6 : (topY + 26 + (items.length ? items.length * 6 : 0));
 
       // Calculations box on the right (fits under items if space)
       const calcX = pageWidth - margin - 80;
