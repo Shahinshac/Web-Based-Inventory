@@ -780,37 +780,148 @@ export default function App(){
     // Accept an optional event and only preventDefault if an event was passed.
     if (e && typeof e.preventDefault === 'function') e.preventDefault()
     
-    // Check if admin login
-    if (authUsername === 'admin' && authPassword === ADMIN_PASSWORD) {
-      // Admin login
-      const adminUser = { username: 'admin', role: 'admin', approved: true }
-      
-      localStorage.setItem('currentUser', JSON.stringify(adminUser))
-      localStorage.setItem('isAdmin', 'true')
-      localStorage.setItem('userRole', 'admin')
-      
-      setIsAuthenticated(true)
-      setIsAdmin(true)
-      setUserRole('admin')
-      setCurrentUser(adminUser)
-      setShowAuthModal(false)
-      setAuthError('')
-      setAuthUsername('')
-      setAuthPassword('')
-      
-      alert(`✅ Admin authenticated successfully!`)
-      
-      fetchUsers()
-      
-      if (pendingAction) {
-        pendingAction()
-        setPendingAction(null)
+    // Admin username: attempt server login first (if online), then fallback to client ADMIN_PASSWORD
+    if (String(authUsername).toLowerCase() === 'admin') {
+      let loggedIn = false
+
+      // Try server-side auth when online
+      if (isOnline) {
+        try {
+          const res = await fetch(API('/api/users/login'), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username: authUsername, password: authPassword })
+          })
+
+          const data = await res.json()
+
+          if (res.ok && data.user) {
+            if (!data.user.approved) {
+              setAuthError('Your account is pending admin approval.')
+              setAuthUsername('')
+              setAuthPassword('')
+              return
+            }
+
+            // Server-authenticated admin
+            const adminUser = data.user
+            localStorage.setItem('currentUser', JSON.stringify(adminUser))
+            localStorage.setItem('isAdmin', 'true')
+            localStorage.setItem('userRole', adminUser.role || 'admin')
+
+            setIsAuthenticated(true)
+            setIsAdmin(true)
+            setUserRole(adminUser.role || 'admin')
+            setCurrentUser(adminUser)
+            setShowAuthModal(false)
+            setAuthError('')
+            setAuthUsername('')
+            setAuthPassword('')
+
+            alert(`✅ Admin authenticated successfully!`)
+            fetchUsers()
+
+            if (pendingAction) {
+              pendingAction()
+              setPendingAction(null)
+            }
+
+            loggedIn = true
+          }
+        } catch (err) {
+          // server auth failed; we'll fall back to client password below
+          console.warn('Admin server auth failed, will check local ADMIN_PASSWORD fallback', err)
+        }
       }
+
+      // Local fallback if server auth didn't succeed
+      if (!loggedIn) {
+        if (authPassword === ADMIN_PASSWORD) {
+          const adminUser = { username: 'admin', role: 'admin', approved: true }
+
+          localStorage.setItem('currentUser', JSON.stringify(adminUser))
+          localStorage.setItem('isAdmin', 'true')
+          localStorage.setItem('userRole', 'admin')
+
+          setIsAuthenticated(true)
+          setIsAdmin(true)
+          setUserRole('admin')
+          setCurrentUser(adminUser)
+          setShowAuthModal(false)
+          setAuthError('')
+          setAuthUsername('')
+          setAuthPassword('')
+
+          alert(`✅ Admin authenticated (local)`) 
+          fetchUsers()
+
+          if (pendingAction) {
+            pendingAction()
+            setPendingAction(null)
+          }
+          return
+        }
+
+        // Admin password mismatch
+        setAuthError('Invalid admin password!')
+        setAuthPassword('')
+        return
+      }
+      // if loggedIn true we have already returned
     }
-    // Disallow regular user logins - only admin allowed in this installation
-    setAuthError('Only admin login is allowed.')
-    setAuthPassword('')
-    return
+
+    // Regular user login - server only
+    try {
+      const res = await fetch(API('/api/users/login'), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: authUsername, password: authPassword })
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.user) {
+        if (!data.user.approved) {
+          setAuthError('Your account is pending admin approval.')
+          setAuthUsername('')
+          setAuthPassword('')
+          return
+        }
+
+        // User login successful
+        const isAdminUser = data.user.role === 'admin'
+        localStorage.setItem('currentUser', JSON.stringify(data.user))
+        localStorage.setItem('isAdmin', isAdminUser ? 'true' : 'false')
+        localStorage.setItem('userRole', data.user.role || 'cashier')
+
+        setIsAuthenticated(true)
+        setIsAdmin(isAdminUser)
+        setUserRole(data.user.role || 'cashier')
+        setCurrentUser(data.user)
+        setShowAuthModal(false)
+        setAuthError('')
+        setAuthUsername('')
+        setAuthPassword('')
+
+        alert(`✅ Welcome ${data.user.username}! You're now logged in.`)
+
+        if (isAdminUser) {
+          fetchUsers()
+        }
+
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+      } else {
+        setAuthError(data.error || 'Invalid username or password!')
+        setAuthPassword('')
+      }
+    } catch(e) {
+      console.error('Login error:', e)
+      setAuthError('Login failed. Please try again.')
+      setAuthPassword('')
+    }
   }
   
   // Logout function
