@@ -129,7 +129,7 @@ export default function App(){
     lowStock: [],
     revenueSummary: {}
   });
-  const [analyticsDateRange, setAnalyticsDateRange] = useState(30); // days
+            <p style={{color:'#666',marginBottom:'20px'}}>Export professional reports in PDF format</p>
   
   // Admin password from secure environment variable
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'defaultpass123'
@@ -1487,6 +1487,7 @@ export default function App(){
 
   // Download Reports Functions - All in PDF Format
   function downloadSalesReport() {
+    if (!invoices || invoices.length === 0) { showNotification('No invoices to export', 'warning'); return; }
     const doc = new jsPDF();
     
     // Header
@@ -1531,6 +1532,7 @@ export default function App(){
   }
 
   function downloadInventoryReport() {
+    if (!products || products.length === 0) { showNotification('No products to export', 'warning'); return; }
     const doc = new jsPDF();
     
     // Header
@@ -1576,6 +1578,7 @@ export default function App(){
   }
 
   function downloadCustomerReport() {
+    if (!customers || customers.length === 0) { showNotification('No customers to export', 'warning'); return; }
     const doc = new jsPDF();
     
     // Header
@@ -1608,6 +1611,7 @@ export default function App(){
   }
 
   function downloadProfitReport() {
+    if (!invoices || invoices.length === 0) { showNotification('No invoice data available for profit report', 'warning'); return; }
     const doc = new jsPDF();
     
     // Header
@@ -2680,6 +2684,119 @@ export default function App(){
 
     addActivity('WhatsApp Invoice Opened', `Invoice ${invoice.id || invoice.billNumber} -> ${cleaned}`);
     showNotification('Opening WhatsApp with invoice message...', 'info');
+  }
+
+  // Generate a high-quality A4 PDF for an invoice (fits single A4 page where possible)
+  function downloadInvoicePDF(invoice) {
+    try {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const margin = 12;
+      const pageWidth = 210; // mm
+      const usableW = pageWidth - margin * 2;
+
+      // Header background
+      doc.setFillColor(102, 126, 234); // #667eea
+      doc.rect(0, 0, pageWidth, 36, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.text(companyInfo.logo + ' ' + companyInfo.name, margin, 14);
+
+      doc.setFontSize(9);
+      doc.setTextColor(255,255,255);
+      doc.text(companyInfo.address, margin, 20);
+      doc.text(`${companyInfo.phone} • ${companyInfo.email}`, margin, 26);
+
+      // Invoice meta box
+      doc.setTextColor(20, 20, 20);
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'normal');
+
+      const invoiceId = invoice.billNumber || invoice.billId || invoice.id || '';
+      const date = new Date(invoice.date || invoice.created_at || Date.now()).toLocaleString();
+      const topY = 42;
+
+      doc.setFillColor(248, 249, 250); // light bg
+      doc.roundedRect(margin, topY, usableW, 18, 3, 3, 'F');
+
+      doc.setTextColor(65, 75, 85);
+      doc.text(`Invoice # ${invoiceId}`, margin + 4, topY + 7);
+      doc.text(`Date: ${date}`, margin + 4, topY + 13);
+      doc.text(`Customer: ${invoice.customer_name || invoice.customerName || 'Walk-in'}`, margin + usableW/2, topY + 7);
+      doc.text(`Phone: ${invoice.customerPhone || ''}`, margin + usableW/2, topY + 13);
+
+      // Items table
+      const columns = [
+        { header: 'S.No', dataKey: 'sno' },
+        { header: 'Item', dataKey: 'item' },
+        { header: 'Qty', dataKey: 'qty' },
+        { header: 'Rate (₹)', dataKey: 'rate' },
+        { header: 'Amount (₹)', dataKey: 'amount' }
+      ];
+
+      const items = (invoice.items || []).map((it, idx) => ({
+        sno: idx + 1,
+        item: it.productName || it.name || 'Item',
+        qty: it.quantity || 0,
+        rate: fmt1(it.unitPrice || it.price || 0),
+        amount: fmt1((it.unitPrice || it.price || 0) * (it.quantity || 0))
+      }));
+
+      doc.autoTable({
+        startY: topY + 26,
+        margin: { left: margin, right: margin },
+        tableWidth: usableW,
+        head: [columns.map(c => c.header)],
+        body: items.map(r => [r.sno, r.item, r.qty, r.rate, r.amount]),
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [102,126,234], textColor: 255 },
+        theme: 'striped'
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 6;
+
+      // Calculations box on the right (fits under items if space)
+      const calcX = pageWidth - margin - 80;
+      const calcW = 80;
+
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(calcX, finalY, calcW, 36, 3, 3, 'F');
+
+      const subtotal = invoice.subtotal || 0;
+      const discount = invoice.discountAmount || 0;
+      const tax = invoice.taxAmount || 0;
+      const grand = invoice.grandTotal || invoice.total || 0;
+
+      doc.setFontSize(9);
+      doc.setTextColor(50,50,50);
+      doc.text('Subtotal:', calcX + 6, finalY + 8);
+      doc.text(`₹${fmt1(subtotal)}`, calcX + calcW - 6, finalY + 8, { align: 'right' });
+
+      doc.text('Discount:', calcX + 6, finalY + 15);
+      doc.text(`-₹${fmt1(discount)}`, calcX + calcW - 6, finalY + 15, { align: 'right' });
+
+      doc.text(`GST (${invoice.taxRate || GST_PERCENT}%) :`, calcX + 6, finalY + 22);
+      doc.text(`₹${fmt1(tax)}`, calcX + calcW - 6, finalY + 22, { align: 'right' });
+
+      doc.setFont(undefined, 'bold');
+      doc.text('GRAND TOTAL', calcX + 6, finalY + 30);
+      doc.text(`₹${fmt1(grand)}`, calcX + calcW - 6, finalY + 30, { align: 'right' });
+
+      // Footer / thank you
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(110,110,110);
+      doc.text('Thank you for your business!', margin, 287);
+
+      // Save as A4 PDF
+      const fileName = `Invoice-${invoiceId || Date.now()}.pdf`;
+      doc.save(fileName);
+      showNotification('✅ Invoice PDF downloaded (A4)', 'success');
+    } catch (err) {
+      console.error('Error generating invoice PDF', err);
+      showNotification('❌ Failed to create PDF. Try the print button instead.', 'error');
+    }
   }
   
   // Convert number to words (Indian system)
@@ -5479,6 +5596,13 @@ export default function App(){
 
             <div className="modal-actions" style={{marginTop:'20px'}}>
               <button onClick={printBill} className="btn-primary">🖨️ Print Bill</button>
+              <button
+                onClick={() => { if (!lastBill) return; downloadInvoicePDF(lastBill); }}
+                className="btn-primary"
+                style={{background:'#2b6cb0', marginLeft:'8px'}}
+              >
+                ⬇️ Download PDF
+              </button>
               <button
                 onClick={() => {
                   if (!lastBill) return;
