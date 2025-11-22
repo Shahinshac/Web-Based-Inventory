@@ -1038,13 +1038,94 @@ app.get('/public/invoice/:token', async (req, res) => {
     if (!invoice) invoice = await db.collection('bills').findOne({ billNumber: invoiceId });
     if (!invoice) return res.status(404).send('Invoice not found');
 
-    // Simple HTML rendering for customers
+    // Public printable invoice page (styling similar to printable bill)
     res.set('Content-Type', 'text/html');
-    res.send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice ${invoice._id}</title>
-      <style>body{font-family:Segoe UI,Arial,sans-serif;padding:18px;background:#f7fafc;color:#111} .card{background:#fff;border-radius:8px;padding:18px;max-width:760px;margin:18px auto;box-shadow:0 6px 18px rgba(0,0,0,.08)} table{width:100%;border-collapse:collapse} th,td{padding:8px;text-align:left;border-bottom:1px solid #eee}</style>
-      </head><body><div class="card"><h2>Invoice #${invoice.billNumber || invoice._id}</h2><p>Customer: ${invoice.customerName || 'Walk-in'}</p><p>Date: ${new Date(invoice.billDate).toLocaleString()}</p><table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>
-      ${ (invoice.items || []).map(it => `<tr><td>${it.productName}</td><td>${it.quantity}</td><td>₹${(it.unitPrice||it.price||0).toFixed(1)}</td><td>₹${(((it.unitPrice||it.price||0) * (it.quantity||0))).toFixed(1)}</td></tr>`).join('') }
-      </tbody></table><div style="margin-top:16px"><strong>Total: ₹${(invoice.grandTotal||invoice.total||0).toFixed(1)}</strong></div><p style="margin-top:18px;color:#666">This link expires on ${new Date(entry.expiresAt).toLocaleString()}</p></div></body></html>`);
+    const companyName = process.env.COMPANY_NAME || 'My Inventory';
+    const companyPhone = process.env.COMPANY_PHONE || '';
+    const companyAddress = process.env.COMPANY_ADDRESS || '';
+    const invoiceDate = invoice.billDate || invoice.created_at || invoice.date || new Date().toISOString();
+
+    res.send(`<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>Invoice ${invoice.billNumber || invoice._id}</title>
+          <style>
+            :root { --maxw: 842px; --page-bg: #f7fafc; }
+            html,body{height:100%;}
+            body{font-family:Segoe UI,Arial,sans-serif;padding:20px;background:var(--page-bg);color:#111}
+            .paper{background:#fff;max-width:760px;margin:16px auto;padding:20px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+            .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+            .company{font-size:20px;font-weight:700;color:#222}
+            .meta{font-size:13px;color:#444;text-align:right}
+            .customer{display:flex;justify-content:space-between;margin-bottom:12px}
+            table{width:100%;border-collapse:collapse;margin-top:8px}
+            th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+            th{background:#fafafa;font-weight:700}
+            tfoot td{border-top:2px solid #ddd;font-weight:700}
+            .totals{margin-top:12px;display:flex;justify-content:flex-end;gap:12px}
+            .totals .col{min-width:220px;background:#fafafa;padding:10px;border-radius:6px}
+            .print-cta{margin-top:16px;text-align:center}
+            .small{font-size:12px;color:#666}
+            @media print{ body{background:white} .paper{box-shadow:none;border-radius:0} .print-cta{display:none} }
+          </style>
+        </head>
+        <body>
+          <div class="paper">
+            <div class="header">
+              <div>
+                <div class="company">${companyName}</div>
+                <div class="small">${companyAddress} ${companyPhone ? ' • ' + companyPhone : ''}</div>
+              </div>
+              <div class="meta">
+                <div>Invoice: <strong>${invoice.billNumber || invoice._id}</strong></div>
+                <div>Date: ${new Date(invoiceDate).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div class="customer">
+              <div>
+                <div><strong>Customer</strong></div>
+                <div>${invoice.customerName || invoice.customer || 'Walk-in'}</div>
+                ${invoice.customerPhone ? `<div class="small">Phone: ${invoice.customerPhone}</div>` : ''}
+                ${invoice.customerAddress ? `<div class="small">${invoice.customerAddress}</div>` : ''}
+              </div>
+              <div style="text-align:right">
+                <div><strong class="small">Salesperson</strong></div>
+                <div class="small">${invoice.username || invoice.seller || '—'}</div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr><th style="width:50px">S.No</th><th>Item</th><th style="width:70px;text-align:right">Qty</th><th style="width:120px;text-align:right">Rate (₹)</th><th style="width:120px;text-align:right">Amount (₹)</th></tr>
+              </thead>
+              <tbody>
+                ${ (invoice.items || []).map((it, idx) => {
+                  const name = (it.productName || it.name || 'Item').toString().slice(0, 200);
+                  const qty = Number(it.quantity || it.qty || 0);
+                  const rate = Number(it.unitPrice || it.price || it.rate || 0).toFixed(2);
+                  const amount = (qty * Number(it.unitPrice || it.price || it.rate || 0)).toFixed(2);
+                  return `<tr><td style="vertical-align:middle">${idx+1}</td><td>${name}</td><td style="text-align:right">${qty}</td><td style="text-align:right">${Number(rate).toFixed(2)}</td><td style="text-align:right">${amount}</td></tr>`;
+                }).join('') }
+              </tbody>
+            </table>
+
+            <div class="totals">
+              <div class="col">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">Subtotal</div><div>₹${Number(invoice.subtotal || invoice.totalBeforeTax || 0).toFixed(2)}</div></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">Discount</div><div>₹${Number(invoice.discountAmount || 0).toFixed(2)}</div></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">GST / Tax</div><div>₹${Number(invoice.gstAmount || invoice.taxAmount || 0).toFixed(2)}</div></div>
+                <div style="display:flex;justify-content:space-between;border-top:1px dashed #ddd;padding-top:8px;margin-top:8px; font-weight:700"><div>Grand Total</div><div>₹${Number(invoice.grandTotal || invoice.total || 0).toFixed(2)}</div></div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px" class="small">This link expires on ${entry.expiresAt ? new Date(entry.expiresAt).toLocaleString() : '—'}</div>
+            <div class="print-cta"><button onclick="window.print()">Print / Save PDF</button></div>
+          </div>
+        </body>
+      </html>`);
 
   } catch (e) {
     logger.error('Public invoice serve error', e);
