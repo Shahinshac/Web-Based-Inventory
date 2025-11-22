@@ -3950,6 +3950,10 @@ export default function App(){
           }}>⚡ 26:07</span>
           <span style={{marginLeft: '8px'}}>Electronics</span>
         </h1>
+        <div className="mobile-auth">
+          <span className="auth-badge authenticated">✓ {isAdmin ? 'Admin' : currentUser?.username}</span>
+          <button onClick={handleLogout} className="logout-btn" style={{background:'#48bb78', marginLeft: '8px'}}>🚪</button>
+        </div>
         <nav>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('dashboard')}} className={tab==='dashboard'?'active':''}>📱 Dashboard</button>
           <button onClick={async ()=>{if(await checkUserValidity())handleTabChange('pos')}} className={tab==='pos'?'active':''}>💳 Transactions</button>
@@ -5467,6 +5471,15 @@ export default function App(){
           </div>
         )}
       </main>
+
+      {/* Mobile bottom navigation (small screens) */}
+      <div className="mobile-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('dashboard') }} className={tab==='dashboard' ? 'active' : ''}><div>🏠</div><small>Home</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('pos') }} className={tab==='pos' ? 'active' : ''}><div>💳</div><small>POS</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('products') }} className={tab==='products' ? 'active' : ''}><div>📦</div><small>Products</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('customers') }} className={tab==='customers' ? 'active' : ''}><div>👥</div><small>Customers</small></button>
+        <button onClick={async ()=>{ if(await checkUserValidity()) handleTabChange('invoices') }} className={tab==='invoices' ? 'active' : ''}><div>🧾</div><small>Invoices</small></button>
+      </div>
 
       {/* Add Product Modal */}
       {showAddProduct && (

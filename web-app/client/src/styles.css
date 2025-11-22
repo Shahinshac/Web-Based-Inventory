@@ -1407,7 +1407,7 @@ ul:not(.products):not(.cart) li:hover {
   }
 
   .app header nav {
-    display: block;
+    display: none; /* hide long top navigation on small screens and use mobile bottom nav */
     margin-left: 0;
     overflow-x: auto;
     white-space: nowrap;
@@ -1682,6 +1682,19 @@ ul:not(.products):not(.cart) li:hover {
   .recent-section h3 {
     font-size: 16px;
   }
+}
+
+/* Mobile bottom nav (visible on phones) */
+.mobile-bottom-nav { display:none; }
+@media (max-width: 768px) {
+  .mobile-bottom-nav { display:flex; position:fixed; left:12px; right:12px; bottom:12px; height:62px; background:#ffffff; border-radius:14px; box-shadow:0 18px 40px rgba(0,0,0,0.12); z-index:10010; justify-content:space-around; align-items:center; padding:6px 10px; gap:6px }
+  .mobile-bottom-nav button { background:transparent; border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#6b7280; font-weight:700; flex:1; padding:6px 2px; border-radius:10px; font-size:12px }
+  .mobile-bottom-nav button div { font-size:18px }
+  .mobile-bottom-nav button.active { color:#2b6cb0; background: linear-gradient(135deg,#eef6ff 0%,#f2f9ff 100%); box-shadow:0 8px 18px rgba(43,108,176,0.08); transform:translateY(-4px); }
+  .mobile-auth { display:flex; position:absolute; right:12px; top:12px; gap:8px; align-items:center }
+  .app header h1 { margin-right:64px; }
+  /* Add spacing so content isn't obscured by fixed bottom nav */
+  .app main { padding-bottom: 110px; }
 }
 
 /* Extra small phones */
